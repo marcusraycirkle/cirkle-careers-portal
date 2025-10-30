@@ -152,7 +152,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('login-submit')?.addEventListener('click', login);
   document.querySelectorAll('[data-nav]')?.forEach(btn => {
-    btn.addEventListener('click', () => navigate(btn.dataset.nav));
+    btn.addEventListener('click', () => {
+      // If it's candidate-status, show popup instead of navigating
+      if (btn.dataset.nav === 'candidate-status') {
+        renderCandidateStatus();
+      } else {
+        navigate(btn.dataset.nav);
+      }
+    });
   });
   updateHeader();
   renderPage();
@@ -229,30 +236,59 @@ function renderPage() {
   const hash = window.location.hash.slice(1) || 'home';
   const main = document.getElementById('main-content');
   if (main) {
-    main.innerHTML = '';
-    main.style.animation = 'fadeIn 0.5s ease-in';
+    // Add page transition animation
+    const animations = ['page-transition-fade', 'page-transition-slide-left', 'page-transition-slide-right', 'page-transition-slide-up', 'page-transition-scale', 'page-transition-rotate'];
+    const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
     
-    if (hash.startsWith('employerportal/')) {
-      if (!currentUser) return navigate('home');
-      const subpage = hash.split('/')[1];
-      renderEmployerPage(subpage);
-    } else if (hash.startsWith('apply/')) {
-      const jobId = parseInt(hash.split('/')[1]);
-      renderApplicationPage(jobId);
-    } else {
-      switch (hash) {
-        case 'home': renderHome(); break;
-        case 'vacancies': renderVacancies(); break;
-        case 'information': renderInformation(); break;
-        case 'candidate-status': renderCandidateStatus(); break;
-        default: 
-          if (hash.startsWith('company/')) {
-            renderCompanyJobs(decodeURIComponent(hash.split('/')[1]));
-          } else {
-            renderHome();
-          }
+    // Clear previous animations
+    main.className = '';
+    
+    // Fade out
+    main.style.opacity = '0';
+    main.style.transform = 'translateY(20px)';
+    main.style.transition = 'opacity 0.2s, transform 0.2s';
+    
+    setTimeout(() => {
+      main.innerHTML = '';
+      
+      if (hash.startsWith('employerportal/')) {
+        if (!currentUser) return navigate('home');
+        const subpage = hash.split('/')[1];
+        renderEmployerPage(subpage);
+      } else if (hash.startsWith('apply/')) {
+        const jobId = parseInt(hash.split('/')[1]);
+        renderApplicationPage(jobId);
+      } else {
+        switch (hash) {
+          case 'home': renderHome(); break;
+          case 'vacancies': renderVacancies(); break;
+          case 'information': renderInformation(); break;
+          case 'candidate-status': 
+            // Don't render as page, just show popup
+            renderCandidateStatus(); 
+            navigate('home');
+            return;
+          default: 
+            if (hash.startsWith('company/')) {
+              renderCompanyJobs(decodeURIComponent(hash.split('/')[1]));
+            } else {
+              renderHome();
+            }
+        }
       }
-    }
+      
+      // Fade in with animation
+      main.style.transition = 'none';
+      main.style.opacity = '0';
+      main.style.transform = 'translateY(20px)';
+      main.classList.add(randomAnimation);
+      
+      setTimeout(() => {
+        main.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+        main.style.opacity = '1';
+        main.style.transform = 'translateY(0)';
+      }, 50);
+    }, 200);
   }
 }
 
@@ -265,7 +301,7 @@ function renderHome() {
         <p style="font-size:1.2rem; color:#6e6e73; max-width:700px; margin:0 auto 2rem; line-height:1.8;">Join our growing family of innovative companies and talented professionals</p>
       </div>
       
-      <img src="https://media.discordapp.net/attachments/1315721916379828244/1372311805828927569/image.png?ex=69051df6&is=6903cc76&hm=b6f1a5fc705b22a11d36140505c74cbc128a43321&=&format=webp&quality=lossless" alt="Cirkle Careers Banner" style="width:100%; border-radius:20px; margin-bottom:3rem; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+      <img src="https://images-ext-1.discordapp.net/external/62yHoKp0AZjTT2rKgBjq8iQfstmkLlS8b5OcJzSEPck/https/pbs.twimg.com/media/GrBTqaRX0AEYnNZ.jpg%3Alarge?format=webp" alt="Cirkle Careers Banner" style="width:100%; border-radius:20px; margin-bottom:3rem; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
       
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:2rem; margin-bottom:3rem;">
         <div style="background:#fff; padding:2rem; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,0.08); text-align:center; transition:transform 0.3s;">
