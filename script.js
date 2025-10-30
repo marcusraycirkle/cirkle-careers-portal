@@ -1359,3 +1359,53 @@ function processApp(id) {
     }
   }
 }
+
+// Reset All Data Function
+function confirmResetData() {
+  showPopup(`
+    <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">⚠️ Reset All Data</h2>
+    <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6;">Are you sure you want to permanently delete all job listings, applications, and processed data? This action cannot be undone.</p>
+    <div style="display:flex; gap:1rem;">
+      <button onclick="resetAllData()" class="big" style="flex:1; background:#ff3b30;">Yes, Reset Everything</button>
+      <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">No, Cancel</button>
+    </div>
+  `);
+}
+
+function resetAllData() {
+  const overlay = document.getElementById('popup-overlay');
+  const popup = document.getElementById('popup');
+  
+  if (overlay && popup) {
+    // Show erasing message with loading
+    popup.classList.add('hidden');
+    overlay.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><p style="color:#fff; margin-top:2rem; font-size:1.2rem; font-weight:600;">Permanently erasing your data. Please wait...</p></div>';
+    overlay.classList.remove('hidden');
+    
+    setTimeout(() => {
+      // Clear all data from localStorage
+      localStorage.removeItem('jobs');
+      localStorage.removeItem('applications');
+      localStorage.removeItem('processed');
+      localStorage.removeItem('chats');
+      
+      // Reset in-memory data
+      jobs = [];
+      applications = [];
+      processed = [];
+      chats = {};
+      
+      playSuccessSound();
+      
+      // Show success message
+      overlay.innerHTML = `
+        <div class="success-screen">
+          <div class="tick">✓</div>
+          <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Data Reset Complete!</h2>
+          <p style="font-size:1rem; color:#6e6e73; margin-bottom:1.5rem;">All job listings, applications, and processed data have been permanently erased.</p>
+          <button class="big" onclick="hidePopup(); renderEmployerSubPage('dashboard');" style="padding:1rem 2rem;">Continue</button>
+        </div>
+      `;
+    }, 2000);
+  }
+}
