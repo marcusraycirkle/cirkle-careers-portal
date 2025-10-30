@@ -503,20 +503,21 @@ function renderEmployerPage(page) {
         <button class="logout" onclick="logout()">Log Out</button>
       `;
       document.body.appendChild(menu);
-      
-      document.querySelectorAll('[data-emp]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          navigate(`employerportal/${btn.dataset.emp}`);
-        });
-      });
-    } else {
-      // Update active state
-      document.querySelectorAll('.menu-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.emp === page);
-      });
     }
+    
+    // Always re-attach event listeners and update active state
+    document.querySelectorAll('[data-emp]').forEach(btn => {
+      btn.replaceWith(btn.cloneNode(true)); // Remove old listeners
+    });
+    
+    document.querySelectorAll('[data-emp]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.emp === page);
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        navigate(`employerportal/${btn.dataset.emp}`);
+      });
+    });
     
     renderEmployerSubPage(page || 'dashboard');
   }
