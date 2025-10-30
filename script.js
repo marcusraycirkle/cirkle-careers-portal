@@ -1,12 +1,22 @@
 // script.js - Organized Layout, Professional, No Initial Data, Refined Payment
 
 // Data Structures (LocalStorage)
-// Sensitive data loaded from config.js (must be uploaded to server)
-// If config.js is missing, the site won't work - this is intentional for security
-const USERS = window.CONFIG?.USERS || {};
-const COMPANIES = window.CONFIG?.COMPANIES || ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
-const COMPANY_LOGOS = window.CONFIG?.COMPANY_LOGOS || {};
-const DISCORD_WEBHOOK = window.CONFIG?.DISCORD_WEBHOOK || '';
+const USERS = {
+  '926568979747713095': { pin: '071025', role: 'Cirkle Dev | Assistant Director', name: 'Teejay Everil', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433587280135848017/image.png?ex=69053bb2&is=6903ea32&hm=d8b44af330e8902aa0956a58820eae731272f474651ead5164c5b31eb2216100&=&format=webp&quality=lossless' },
+  '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Board of Directors', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png?ex=69053408&is=6903e288&hm=ddb0faa805dc0daf59f7ebe922a39011ff1063a9d621c3a4580ea433221249b4&=&format=webp&quality=lossless' },
+  '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Managing Director', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png?ex=690533d4&is=6903e254&hm=74b4a63f5c32ca4a2b01417f549f26b16c58c8ed95d732585e7de24508fbd103&=&format=webp&quality=lossless' },
+  '1028181169721839616': { pin: '227102', role: ' Aer Lingus | Recruiter', name: 'Magic', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586693922885692/image.png?ex=69053b26&is=6903e9a6&hm=94b6ccd2419d4c4ce18e88713264c95f258a8c9556f8b536aff3a2808a95846f&=&format=webp&quality=lossless' },
+  '1246933891613200467': { pin: '421942', role: ' Aer Lingus | CEO', name: 'Carter', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png?ex=69053b26&is=6903e9a6&hm=45eec1ce305b323ec8d7b9a7743acf3080d4ae557ce772db764e15c6030d3d90&=&format=webp&quality=lossless' },
+  '1246933891613200467': { pin: '311025', role: ' Cirkle Dev | Finance Departement', name: 'Chase Johnson', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png?ex=690545e6&is=6903f466&hm=b27fd08540e8ea5fcab711111096d9ac4ed4587fc5a3e35762717b0c79231ac0&=&format=webp&quality=lossless&width=620&height=960' }
+};
+const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
+const COMPANY_LOGOS = {
+  'Cirkle Development': 'https://media.discordapp.net/attachments/1315278404009988107/1315278406300209222/Utilities_-_3.png?ex=69049cf8&is=69034b78&hm=ce6329199383544d49ce52979847ebc540a956a41a7c54bb57ad3d5c7d570465&=&format=webp&quality=lossless',
+  'Aer Lingus': 'https://media.discordapp.net/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg?ex=6904ebfc&is=69039a7c&hm=90fbca7874d5267dbbb82446f85aa58bdb8a3e6184e56fbd0d8383643b7a9be2&=&format=webp',
+  'DevDen': 'https://media.discordapp.net/attachments/1315278404009988107/1426979098328174634/image.png?ex=6904ec59&is=69039ad9&hm=7099577485c5d023c79be9078f97d46618acb741231ec90540b88b8305526f71&=&format=webp&quality=lossless',
+  'Cirkle Group Careers': 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg?ex=6904ebfc&is=69039a7c&hm=97a11f1d64abb2febeb26a5af51cdd7d4d7f074ffe353bce1efd4f6ba4db08da&=&format=webp'
+};
+const DISCORD_WEBHOOK = ''; // Add your Discord webhook URL here if you want notifications
 
 let currentUser = null;
 let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
