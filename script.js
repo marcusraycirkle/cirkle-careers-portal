@@ -1,11 +1,12 @@
 // script.js - Organized Layout, Professional, No Initial Data, Refined Payment
 
 // Data Structures (LocalStorage)
-// Sensitive data now loaded from config.js (not committed to GitHub)
-const USERS = CONFIG?.USERS || {};
-const COMPANIES = CONFIG?.COMPANIES || ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
-const COMPANY_LOGOS = CONFIG?.COMPANY_LOGOS || {};
-const DISCORD_WEBHOOK = CONFIG?.DISCORD_WEBHOOK || '';
+// Sensitive data loaded from config.js (must be uploaded to server)
+// If config.js is missing, the site won't work - this is intentional for security
+const USERS = window.CONFIG?.USERS || {};
+const COMPANIES = window.CONFIG?.COMPANIES || ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
+const COMPANY_LOGOS = window.CONFIG?.COMPANY_LOGOS || {};
+const DISCORD_WEBHOOK = window.CONFIG?.DISCORD_WEBHOOK || '';
 
 let currentUser = null;
 let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
