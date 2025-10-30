@@ -497,25 +497,32 @@ function renderEmployerPage(page) {
           <h3 style="margin-top:0.75rem; font-size:1.1rem;">${currentUser.name}</h3>
           <p style="color:#6e6e73; font-size:0.9rem;">${currentUser.role}</p>
         </div>
-        <button data-emp="dashboard" class="menu-btn ${page === 'dashboard' ? 'active' : ''}">Dashboard</button>
-        <button data-emp="candidatemanagement" class="menu-btn ${page === 'candidatemanagement' ? 'active' : ''}">Candidate Management</button>
-        <button data-emp="joblistings" class="menu-btn ${page === 'joblistings' ? 'active' : ''}">Job Listings</button>
+        <button data-emp="dashboard" class="menu-btn">Dashboard</button>
+        <button data-emp="candidatemanagement" class="menu-btn">Candidate Management</button>
+        <button data-emp="joblistings" class="menu-btn">Job Listings</button>
         <button class="logout" onclick="logout()">Log Out</button>
       `;
       document.body.appendChild(menu);
     }
     
-    // Always re-attach event listeners and update active state
-    document.querySelectorAll('[data-emp]').forEach(btn => {
-      btn.replaceWith(btn.cloneNode(true)); // Remove old listeners
+    // Update active states
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.emp === page) {
+        btn.classList.add('active');
+      }
     });
     
-    document.querySelectorAll('[data-emp]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.emp === page);
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        navigate(`employerportal/${btn.dataset.emp}`);
+    // Attach click handlers
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+    });
+    
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        console.log('Clicked:', this.dataset.emp);
+        navigate(`employerportal/${this.dataset.emp}`);
       });
     });
     
