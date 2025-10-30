@@ -261,7 +261,7 @@ function renderHome() {
   if (main) {
     main.innerHTML = `
       <div style="text-align:center; padding:2rem 0;">
-        <h1 style="font-size:3rem; font-weight:800; margin-bottom:1rem; background:linear-gradient(135deg, #007aff 0%, #5856d6 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">Cirkle Development Careers</h1>
+        <h1 id="animated-title" style="font-size:3rem; font-weight:800; margin-bottom:1rem; transition: color 0.8s ease-in-out;">Cirkle Development Careers</h1>
         <p style="font-size:1.2rem; color:#6e6e73; max-width:700px; margin:0 auto 2rem; line-height:1.8;">Join our growing family of innovative companies and talented professionals</p>
       </div>
       
@@ -289,6 +289,27 @@ function renderHome() {
         <button class="big" onclick="navigate('vacancies')" style="padding:1.2rem 3rem; font-size:1.2rem; font-weight:700; background:linear-gradient(135deg, #007aff 0%, #5856d6 100%); box-shadow:0 8px 24px rgba(0,122,255,0.3);">🔍 Explore Opportunities</button>
       </div>
     `;
+    
+    // Start color animation
+    const colors = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#00695c', '#007aff', '#5ac8fa', '#5856d6', '#ff2d55', '#8b4513'];
+    let currentColorIndex = 0;
+    
+    const animateTitle = () => {
+      const title = document.getElementById('animated-title');
+      if (title) {
+        currentColorIndex = (currentColorIndex + 1) % colors.length;
+        title.style.color = colors[currentColorIndex];
+      }
+    };
+    
+    // Start animation immediately and repeat every 3 seconds
+    setTimeout(() => {
+      const title = document.getElementById('animated-title');
+      if (title) {
+        title.style.color = colors[0];
+        setInterval(animateTitle, 3000);
+      }
+    }, 100);
   }
 }
 
