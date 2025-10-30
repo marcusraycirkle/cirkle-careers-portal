@@ -48,6 +48,7 @@ function showNotification(msg) {
   if (notif) {
     notif.textContent = msg;
     notif.classList.remove('hidden');
+    document.getElementById('notification-sound')?.play();
     setTimeout(() => notif.classList.add('hidden'), 3000);
   }
 }
