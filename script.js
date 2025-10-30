@@ -85,7 +85,7 @@ function showLoading() {
   }
 }
 
-function showSuccessScreen(message, pin = null) {
+function showSuccessScreen(message, pin = null, requireButton = false) {
   const overlay = document.getElementById('popup-overlay');
   const popup = document.getElementById('popup');
   if (overlay && popup) {
@@ -98,14 +98,19 @@ function showSuccessScreen(message, pin = null) {
       content += `
         <p style="font-size:1.1rem; margin-bottom:0.5rem;">Here is your candidate PIN to view your status:</p>
         <p style="font-size:1.5rem; font-weight:700; color:#007aff; margin-bottom:1rem;">${pin}</p>
-        <p style="font-size:0.9rem; color:#6e6e73; max-width:400px; margin:0 auto;">We recommend checking everyday for an update. Please only use this on this current device as this website is stored locally.</p>`;
+        <p style="font-size:0.9rem; color:#6e6e73; max-width:400px; margin:0 auto; margin-bottom:1.5rem;">We recommend checking everyday for an update. Please only use this on this current device as this website is stored locally.</p>`;
+    }
+    if (requireButton) {
+      content += '<button class="big" onclick="navigate(\'home\'); hidePopup();" style="padding:1rem 2rem; font-size:1.1rem;">Finished</button>';
     }
     content += '</div>';
     overlay.innerHTML = content;
     overlay.classList.remove('hidden');
-    setTimeout(() => {
-      hidePopup();
-    }, 5000);
+    if (!requireButton) {
+      setTimeout(() => {
+        hidePopup();
+      }, 5000);
+    }
   }
 }
 
@@ -380,9 +385,9 @@ async function searchRoblox() {
   // Removed as requested
 }
 
-function submitApplication(jobId) {
+async function submitApplication(jobId) {
   showLoading();
-  setTimeout(() => {
+  setTimeout(async () => {
     const app = { 
       id: Date.now(), 
       jobId, 
@@ -424,14 +429,63 @@ function submitApplication(jobId) {
       chats[app.id] = [];
       saveData();
       
-      showSuccessScreen('Successfully Applied!', app.pin);
-      setTimeout(() => navigate('home'), 5000);
+      // Send to Discord webhook (optional - add your webhook URL)
+      const WEBHOOK_URL = ''; // Add your Discord webhook URL here
+      if (WEBHOOK_URL) {
+        try {
+          const embed = {
+            title: `🆕 New Application: ${job.title}`,
+            color: 0x007AFF,
+            fields: [
+              { name: '📋 Position', value: job.title, inline: true },
+              { name: '🏢 Company', value: job.company, inline: true },
+              { name: '📅 Applied', value: new Date(app.appliedDate).toLocaleString(), inline: false },
+            ],
+            timestamp: new Date().toISOString()
+          };
+          
+          // Add applicant info
+          if (app.data.name) embed.fields.push({ name: '👤 Name', value: app.data.name, inline: true });
+          if (app.data.email) embed.fields.push({ name: '📧 Email', value: app.data.email, inline: true });
+          if (app.data.discord) embed.fields.push({ name: '💬 Discord ID', value: app.data.discord, inline: true });
+          if (app.data.roblox) embed.fields.push({ name: '🎮 Roblox ID', value: app.data.roblox, inline: true });
+          if (app.data.experience) embed.fields.push({ name: '💼 Experience', value: app.data.experience.substring(0, 1000), inline: false });
+          
+          // Add answers to extra questions
+          if (Object.keys(app.data.answers).length > 0) {
+            Object.keys(app.data.answers).forEach(question => {
+              embed.fields.push({ 
+                name: `❓ ${question}`, 
+                value: app.data.answers[question] || 'No answer', 
+                inline: false 
+              });
+            });
+          }
+          
+          embed.fields.push({ name: '🔑 Candidate PIN', value: `\`${app.pin}\``, inline: false });
+          
+          await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ embeds: [embed] })
+          });
+        } catch (e) {
+          console.log('Webhook failed:', e);
+        }
+      }
+      
+      playSuccessSound();
+      showSuccessScreen('Successfully Applied!', app.pin, true);
     }
   }, 2000);
 }
 
 function renderCandidateStatus() {
-  showPopup('<input type="text" id="status-pin" placeholder="Enter your 12-digit PIN" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;"><button class="big" onclick="checkStatus()" style="width:100%;">Check Status</button>');
+  showPopup(`
+    <h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Check Application Status</h2>
+    <input type="text" id="status-pin" placeholder="Enter your 12-digit PIN" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;">
+    <button class="big" onclick="checkStatus()" style="width:100%;">Check Status</button>
+  `);
 }
 
 function checkStatus() {
@@ -439,20 +493,24 @@ function checkStatus() {
   if (pin) {
     const app = applications.find(a => a.pin === pin) || processed.find(h => h.pin === pin);
     if (app) {
+      const job = jobs.find(j => j.id === app.jobId);
       let msg = `<h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Application Status</h2>`;
+      msg += `<p style="font-size:1rem; color:#6e6e73; margin-bottom:1.5rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>`;
       
       if (app.status === 'Rejected') {
-        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">You have been <span style="background:#ff3b30; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">rejected</span> by employer.</p>`;
+        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">You have been <span style="background:#ff3b30; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">rejected</span>.</p>`;
         msg += `<p style="font-size:1rem; margin-bottom:0.5rem;"><strong>Reason:</strong> ${app.reason || 'Not provided'}</p>`;
-        msg += `<p style="font-size:0.9rem; color:#6e6e73;">Contact us if you have further concerns.</p>`;
+        msg += `<p style="font-size:1rem; margin-bottom:0.5rem;"><strong>Handled by:</strong> ${app.handler || 'Unknown'}</p>`;
+        msg += `<p style="font-size:0.9rem; color:#6e6e73; margin-top:1rem;">Contact us if you have further concerns.</p>`;
       } else if (app.status === 'Hired') {
-        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">You have been <span style="background:#34c759; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">hired</span> by employer.</p>`;
-        msg += `<p style="font-size:1rem; color:#6e6e73;">Please check your emails and Discord DMs.</p>`;
+        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">You have been <span style="background:#34c759; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">hired</span>! 🎉</p>`;
+        msg += `<p style="font-size:1rem; margin-bottom:0.5rem;"><strong>Hired by:</strong> ${app.handler || 'Unknown'}</p>`;
+        msg += `<p style="font-size:1rem; color:#6e6e73; margin-top:1rem;">Please check your emails and Discord DMs for next steps.</p>`;
       } else if (app.status === 'Extra Time') {
-        msg += `<p style="font-size:1.2rem;">Status: <span style="background:#ffcc00; color:#000; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">Extra Time</span></p>`;
+        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">Status: <span style="background:#ffcc00; color:#000; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">Extra Time</span></p>`;
         msg += `<p style="font-size:0.9rem; color:#6e6e73; margin-top:0.5rem;">Your application is being reviewed. Please check back later.</p>`;
       } else {
-        msg += `<p style="font-size:1.2rem;">Status: <span style="background:#007aff; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">${app.status}</span></p>`;
+        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">Status: <span style="background:#007aff; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">${app.status}</span></p>`;
         msg += `<p style="font-size:0.9rem; color:#6e6e73; margin-top:0.5rem;">Your application is being processed.</p>`;
       }
       
@@ -687,7 +745,8 @@ function renderEmployerSubPage(sub) {
             hiredApps.forEach(app => {
               const job = jobs.find(j => j.id === app.jobId);
               html += `
-                <div class="card" style="text-align:left; padding:1.5rem; background:#eaffea; border:2px solid #34c759;">
+                <div class="card" style="text-align:left; padding:1.5rem; background:#eaffea; border:2px solid #34c759; position:relative;">
+                  <span class="trash" onclick="event.stopPropagation(); deleteProcessedApplication(${app.id})" style="position:absolute; top:1rem; right:1rem; cursor:pointer; font-size:1.2rem; z-index:5;">🗑</span>
                   <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${app.data.name || 'Anonymous'}</h3>
                   <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>
                   <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Company:</strong> ${job?.company || 'N/A'}</p>
@@ -704,7 +763,8 @@ function renderEmployerSubPage(sub) {
             rejectedApps.forEach(app => {
               const job = jobs.find(j => j.id === app.jobId);
               html += `
-                <div class="card" style="text-align:left; padding:1.5rem; background:#ffeaea; border:2px solid #ff3b30;">
+                <div class="card" style="text-align:left; padding:1.5rem; background:#ffeaea; border:2px solid #ff3b30; position:relative;">
+                  <span class="trash" onclick="event.stopPropagation(); deleteProcessedApplication(${app.id})" style="position:absolute; top:1rem; right:1rem; cursor:pointer; font-size:1.2rem; z-index:5;">🗑</span>
                   <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${app.data.name || 'Anonymous'}</h3>
                   <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>
                   <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Company:</strong> ${job?.company || 'N/A'}</p>
@@ -1129,12 +1189,16 @@ function confirmHire(appId) {
     processed.push(...applications.splice(appIndex, 1));
     saveData();
     
-    showSuccessScreen('Candidate Hired Successfully!');
     playSuccessSound();
-    setTimeout(() => {
-      hidePopup();
-      renderEmployerSubPage('candidatemanagement');
-    }, 3000);
+    const overlay = document.getElementById('popup-overlay');
+    overlay.innerHTML = `
+      <div class="success-screen">
+        <div class="tick">✓</div>
+        <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Candidate Hired Successfully!</h2>
+        <p style="font-size:1rem; color:#6e6e73; margin-bottom:2rem;">The candidate has been moved to the Hired tab.</p>
+        <button class="big" onclick="hidePopup(); renderEmployerSubPage('candidatemanagement');" style="padding:1rem 2rem;">Close</button>
+      </div>
+    `;
   }
 }
 
@@ -1159,14 +1223,10 @@ function confirmReject(appId) {
       <div class="success-screen">
         <div class="tick" style="background:#ff3b30;">✗</div>
         <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Application Rejected</h2>
-        <p style="font-size:1rem; color:#6e6e73;">The candidate has been notified.</p>
+        <p style="font-size:1rem; color:#6e6e73; margin-bottom:2rem;">The candidate has been notified and moved to the Rejected tab.</p>
+        <button class="big" onclick="hidePopup(); renderEmployerSubPage('candidatemanagement');" style="padding:1rem 2rem; background:#ff3b30;">Close</button>
       </div>
     `;
-    
-    setTimeout(() => {
-      hidePopup();
-      renderEmployerSubPage('candidatemanagement');
-    }, 3000);
   }
 }
 
@@ -1185,6 +1245,40 @@ function confirmDelete(id) {
       renderEmployerSubPage('joblistings');
     }, 2000);
   }
+}
+
+function deleteProcessedApplication(appId) {
+  showPopup(`
+    <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">⚠️ Delete Application</h2>
+    <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6;">Are you sure you want to permanently delete this application? It can't be retrieved.</p>
+    <div style="display:flex; gap:1rem;">
+      <button onclick="confirmDeleteProcessedApplication(${appId})" class="big" style="flex:1; background:#ff3b30;">Yes, Delete</button>
+      <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">No, Cancel</button>
+    </div>
+  `);
+}
+
+function confirmDeleteProcessedApplication(appId) {
+  showLoading();
+  setTimeout(() => {
+    processed = processed.filter(p => p.id !== appId);
+    saveData();
+    playSuccessSound();
+    
+    const overlay = document.getElementById('popup-overlay');
+    overlay.innerHTML = `
+      <div class="success-screen">
+        <div class="tick">✓</div>
+        <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Application Deleted</h2>
+        <p style="font-size:1rem; color:#6e6e73;">The application has been permanently removed.</p>
+      </div>
+    `;
+    
+    setTimeout(() => {
+      hidePopup();
+      renderEmployerSubPage('candidatemanagement');
+    }, 2000);
+  }, 1500);
 }
 
 function viewJob(id) {
