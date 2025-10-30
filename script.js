@@ -2,21 +2,29 @@
 
 // Data Structures (LocalStorage)
 const USERS = {
-  '926568979747713095': { pin: '071025', role: 'Assistant Director', name: 'Teejay', pfp: 'https://via.placeholder.com/50?text=TJ' },
-  '1088907566844739624': { pin: '061025', role: 'Board of Directors', name: 'Marcus', pfp: 'https://via.placeholder.com/50?text=M' },
-  '1187751127039615086': { pin: '051025', role: 'Managing Director', name: 'Sam', pfp: 'https://via.placeholder.com/50?text=S' }
+  '926568979747713095': { pin: '071025', role: 'Cirkle Dev | Assistant Director', name: 'Teejay Everil', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433587280135848017/image.png?ex=69053bb2&is=6903ea32&hm=d8b44af330e8902aa0956a58820eae731272f474651ead5164c5b31eb2216100&=&format=webp&quality=lossless' },
+  '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Board of Directors', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png?ex=69053408&is=6903e288&hm=ddb0faa805dc0daf59f7ebe922a39011ff1063a9d621c3a4580ea433221249b4&=&format=webp&quality=lossless' },
+  '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Managing Director', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png?ex=690533d4&is=6903e254&hm=74b4a63f5c32ca4a2b01417f549f26b16c58c8ed95d732585e7de24508fbd103&=&format=webp&quality=lossless' },
+  '1028181169721839616': { pin: '227102', role: ' Aer Lingus | Recruiter', name: 'Magic', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586693922885692/image.png?ex=69053b26&is=6903e9a6&hm=94b6ccd2419d4c4ce18e88713264c95f258a8c9556f8b536aff3a2808a95846f&=&format=webp&quality=lossless' },
+  '1246933891613200467': { pin: '421942', role: ' Aer Lingus | CEO', name: 'Carter', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png?ex=69053b26&is=6903e9a6&hm=45eec1ce305b323ec8d7b9a7743acf3080d4ae557ce772db764e15c6030d3d90&=&format=webp&quality=lossless' }
 };
 const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
+const COMPANY_LOGOS = {
+  'Cirkle Development': 'https://media.discordapp.net/attachments/1315278404009988107/1315278406300209222/Utilities_-_3.png?ex=69049cf8&is=69034b78&hm=ce6329199383544d49ce52979847ebc540a956a41a7c54bb57ad3d5c7d570465&=&format=webp&quality=lossless',
+  'Aer Lingus': 'https://media.discordapp.net/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg?ex=6904ebfc&is=69039a7c&hm=90fbca7874d5267dbbb82446f85aa58bdb8a3e6184e56fbd0d8383643b7a9be2&=&format=webp',
+  'DevDen': 'https://media.discordapp.net/attachments/1315278404009988107/1426979098328174634/image.png?ex=6904ec59&is=69039ad9&hm=7099577485c5d023c79be9078f97d46618acb741231ec90540b88b8305526f71&=&format=webp&quality=lossless',
+  'Cirkle Group Careers': 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg?ex=6904ebfc&is=69039a7c&hm=97a11f1d64abb2febeb26a5af51cdd7d4d7f074ffe353bce1efd4f6ba4db08da&=&format=webp'
+};
 let currentUser = null;
 let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
 let applications = JSON.parse(localStorage.getItem('applications')) || [];
 let processed = JSON.parse(localStorage.getItem('processed')) || [];
 let chats = JSON.parse(localStorage.getItem('chats')) || {};
 const faqs = [
-  { q: 'What is Cirkle?', a: 'A company.' },
-  { q: 'How to apply?', a: 'Click apply.' },
-  { q: 'Benefits?', a: 'Many.' },
-  { q: 'Contact?', a: 'Email us.' }
+  { q: 'What is Cirkle Development Group?', a: 'The Cirkle Development Group (Cirkle Dev Group) is the parent organization established to own, manage, and provide strategic direction for all descendant companies under its corporate umbrella, including the original Cirkle Development. We are structured as a holding group dedicated to maximizing the efficiency and growth of our portfolio businesses. Our existence ensures that each subsidiary can focus entirely on its core mission and operations while benefiting from the financial stability, centralized resources, and clear legal framework provided by the Group. We are building a coherent, synergistic network where stability and strategic oversight drive collective success. You can view more by visiting https://group.cirkledevelopment.co.uk/' },
+  { q: 'How do I apply?', a: 'To apply for a job, go to the "vacancies" tab, select the company you wish to apply to and view the list of available applications. Click on your selected application and fill out the details! You will be presented with a 12 digit PIN- keep this safe as it can be used to track your application status. Once your application has been approved, you will be marked as "Hired", sent a welcome email from "careers@cirkledevelopment.co.uk" and will be DMed from your assigned employer. It is as easy as that!' },
+  { q: 'What are the benefits?', a: 'Each company offers a variety of benefits. At [Cirkle Development], you get a staff discount to 40% off every product, You get to learn new ways to create, collaborate and manage workspace flow, you get to see behind the scenes information and leaks to products and some positions are paid! Please contact a relative representative for other groups to see the benefits. This can be done by opening a ticket in the correct server.' },
+  { q: 'Contact Us', a: 'If you wish to contact us in any way, you can shoot an email to careers@cirkledevelopment.co.uk for career guidance. General enquiries are sent to info@cirkledevelopment.co.uk.' }
 ];
 
 // Utility Functions
@@ -252,13 +260,34 @@ function renderHome() {
   const main = document.getElementById('main-content');
   if (main) {
     main.innerHTML = `
-      <h1 style="font-size:2.5rem; font-weight:700; margin-bottom:1rem;">Cirkle Development Careers</h1>
-      <div class="background-images">
-        <img src="https://via.placeholder.com/1400x300?text=Img1" class="active">
-        <img src="https://via.placeholder.com/1400x300?text=Img2">
+      <div style="text-align:center; padding:2rem 0;">
+        <h1 style="font-size:3rem; font-weight:800; margin-bottom:1rem; background:linear-gradient(135deg, #007aff 0%, #5856d6 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">Cirkle Development Careers</h1>
+        <p style="font-size:1.2rem; color:#6e6e73; max-width:700px; margin:0 auto 2rem; line-height:1.8;">Join our growing family of innovative companies and talented professionals</p>
       </div>
-      <p style="font-size:1.1rem; max-width:800px; margin:0 auto 1.5rem;">Welcome to the official career portal for Cirkle Development and its subsidiaries. Explore job listings and more!</p>
-      <button class="big" onclick="navigate('vacancies')">View Openings</button>
+      
+      <img src="https://media.discordapp.net/attachments/1315721916379828244/1372311805828927569/image.png?ex=69051df6&is=6903cc76&hm=b6f1a5fc705b22a11d36140505c74cbc128a43321&=&format=webp&quality=lossless" alt="Cirkle Careers Banner" style="width:100%; border-radius:20px; margin-bottom:3rem; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+      
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:2rem; margin-bottom:3rem;">
+        <div style="background:#fff; padding:2rem; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,0.08); text-align:center; transition:transform 0.3s;">
+          <div style="font-size:3rem; margin-bottom:1rem;">🚀</div>
+          <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:0.75rem;">Innovative Work</h3>
+          <p style="color:#6e6e73; line-height:1.6;">Work on cutting-edge projects that push boundaries and create real impact</p>
+        </div>
+        <div style="background:#fff; padding:2rem; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,0.08); text-align:center; transition:transform 0.3s;">
+          <div style="font-size:3rem; margin-bottom:1rem;">🤝</div>
+          <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:0.75rem;">Great Team</h3>
+          <p style="color:#6e6e73; line-height:1.6;">Collaborate with talented professionals who are passionate about excellence</p>
+        </div>
+        <div style="background:#fff; padding:2rem; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,0.08); text-align:center; transition:transform 0.3s;">
+          <div style="font-size:3rem; margin-bottom:1rem;">📈</div>
+          <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:0.75rem;">Career Growth</h3>
+          <p style="color:#6e6e73; line-height:1.6;">Advance your career with opportunities for learning and development</p>
+        </div>
+      </div>
+      
+      <div style="text-align:center;">
+        <button class="big" onclick="navigate('vacancies')" style="padding:1.2rem 3rem; font-size:1.2rem; font-weight:700; background:linear-gradient(135deg, #007aff 0%, #5856d6 100%); box-shadow:0 8px 24px rgba(0,122,255,0.3);">🔍 Explore Opportunities</button>
+      </div>
     `;
   }
 }
@@ -266,36 +295,77 @@ function renderHome() {
 function renderVacancies() {
   const main = document.getElementById('main-content');
   if (main) {
-    main.innerHTML = `<h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Available Vacancies</h2>
-      <img src="https://via.placeholder.com/1400x200?text=Banner" alt="Banner" style="border-radius:16px; margin-bottom:1.5rem; width:100%;">`;
+    main.innerHTML = `
+      <h2 style="font-size:2.5rem; font-weight:800; margin-bottom:1rem; text-align:center;">Available Vacancies</h2>
+      <p style="text-align:center; font-size:1.1rem; color:#6e6e73; margin-bottom:2rem;">Explore opportunities across our family of companies</p>
+      <img src="https://media.discordapp.net/attachments/1404157487799861332/1432846309362237480/image.png?ex=69052c9d&is=6903db1d&hm=50cfebeb97b22a11d36140505c74cbc060d282ad95e0686026e9e48d15e71c52&=&format=webp&quality=lossless" alt="Vacancies Banner" style="border-radius:20px; margin-bottom:2.5rem; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+      <div style="display:grid; gap:1.5rem;">
+    `;
+    
     COMPANIES.forEach(company => {
       const count = jobs.filter(j => j.company === company && j.active).length;
-      const row = document.createElement('div');
-      row.classList.add('row');
-      row.innerHTML = `<img src="https://via.placeholder.com/56?text=${company[0]}" alt="${company}">
-        <span class="name">${company}</span>
-        <span class="count">${count}</span>`;
-      row.addEventListener('click', () => navigate(`company/${encodeURIComponent(company)}`));
-      main.appendChild(row);
+      const logo = COMPANY_LOGOS[company] || `https://via.placeholder.com/80?text=${company[0]}`;
+      
+      main.innerHTML += `
+        <div class="row" onclick="navigate('company/${encodeURIComponent(company)}')" style="display:flex; align-items:center; padding:1.5rem; background:#fff; border-radius:16px; cursor:pointer; transition:all 0.3s; box-shadow:0 4px 12px rgba(0,0,0,0.08); gap:1.5rem;">
+          <img src="${logo}" alt="${company}" style="width:80px; height:80px; border-radius:12px; object-fit:cover; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+          <div style="flex:1;">
+            <h3 style="font-size:1.4rem; font-weight:700; margin-bottom:0.25rem; color:#1d1d1f;">${company}</h3>
+            <p style="color:#6e6e73; font-size:0.95rem;">Explore positions in this company</p>
+          </div>
+          <div style="background:${count > 0 ? '#34c759' : '#8e8e93'}; color:#fff; padding:0.5rem 1rem; border-radius:20px; font-weight:700; font-size:1.1rem; min-width:60px; text-align:center;">
+            ${count}
+          </div>
+        </div>
+      `;
     });
+    
+    main.innerHTML += '</div>';
   }
 }
 
 function renderCompanyJobs(company) {
   const main = document.getElementById('main-content');
   if (main) {
-    main.innerHTML = `<h1 style="font-size:2.5rem; font-weight:700;">${company}</h1><img src="https://via.placeholder.com/1400x200?text=${company}+Banner" alt="Banner" style="border-radius:16px; width:100%; margin-bottom:1.5rem;">`;
+    const logo = COMPANY_LOGOS[company] || `https://via.placeholder.com/120?text=${company[0]}`;
     const list = jobs.filter(j => j.company === company && j.active);
+    
+    main.innerHTML = `
+      <div style="text-align:center; margin-bottom:2rem;">
+        <img src="${logo}" alt="${company}" style="width:120px; height:120px; border-radius:20px; margin-bottom:1rem; box-shadow:0 4px 16px rgba(0,0,0,0.12); object-fit:cover;">
+        <h1 style="font-size:2.8rem; font-weight:800; margin-bottom:0.5rem;">${company}</h1>
+        <p style="font-size:1.1rem; color:#6e6e73;">${list.length} active position${list.length !== 1 ? 's' : ''} available</p>
+      </div>
+    `;
+    
     if (list.length === 0) {
-      main.innerHTML += '<p style="font-size:1.1rem; color:#6e6e73;">No openings available.</p>';
+      main.innerHTML += `
+        <div style="text-align:center; padding:4rem 2rem; background:#f9f9fb; border-radius:20px; margin-top:2rem;">
+          <div style="font-size:4rem; margin-bottom:1rem;">📭</div>
+          <h3 style="font-size:1.5rem; font-weight:700; margin-bottom:0.75rem;">No Openings Available</h3>
+          <p style="font-size:1.1rem; color:#6e6e73; margin-bottom:2rem;">There are currently no active positions at ${company}. Check back soon!</p>
+          <button class="big" onclick="navigate('vacancies')" style="background:#8e8e93;">← Back to All Companies</button>
+        </div>
+      `;
+    } else {
+      main.innerHTML += '<div style="display:grid; gap:1.25rem;">';
+      list.forEach(job => {
+        main.innerHTML += `
+          <div class="row" onclick="showJobPopup(jobs.find(j => j.id === ${job.id}))" style="cursor:pointer; padding:1.5rem; background:#fff; border-radius:16px; transition:all 0.3s; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+            <div style="flex:1;">
+              <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:0.5rem; color:#1d1d1f;">${job.title}</h3>
+              <p style="color:#6e6e73; font-size:0.95rem; margin-bottom:0.5rem;">${job.description.substring(0, 120)}${job.description.length > 120 ? '...' : ''}</p>
+              <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.75rem;">
+                <span style="background:#f2f2f7; padding:0.4rem 0.9rem; border-radius:12px; font-size:0.85rem; font-weight:600; color:#007aff;">💰 ${job.payment.split(':')[0]}</span>
+                <span style="background:#f2f2f7; padding:0.4rem 0.9rem; border-radius:12px; font-size:0.85rem; font-weight:600; color:#34c759;">📝 ${job.submissions} applications</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; color:#007aff; font-size:1.5rem; font-weight:700;">→</div>
+          </div>
+        `;
+      });
+      main.innerHTML += '</div>';
     }
-    list.forEach(job => {
-      const item = document.createElement('div');
-      item.classList.add('row');
-      item.innerHTML = `<span class="name">${job.title}</span>`;
-      item.addEventListener('click', () => showJobPopup(job));
-      main.appendChild(item);
-    });
   }
 }
 
@@ -430,7 +500,7 @@ async function submitApplication(jobId) {
       saveData();
       
       // Send to Discord webhook (optional - add your webhook URL)
-      const WEBHOOK_URL = ''; // Add your Discord webhook URL here
+      const WEBHOOK_URL = 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA'; // Add your Discord webhook URL here
       if (WEBHOOK_URL) {
         try {
           const embed = {
@@ -524,18 +594,49 @@ function checkStatus() {
 function renderInformation() {
   const main = document.getElementById('main-content');
   if (main) {
-    main.innerHTML = '<h2 style="font-size:2rem; font-weight:600; margin-bottom:1.5rem;">Information & FAQs</h2>';
-    faqs.forEach(faq => {
-      const row = document.createElement('div');
-      row.classList.add('faq-row');
-      row.innerHTML = `<span style="margin-right:1.25rem; font-size:1.4rem; color:#007aff;">?</span> <span style="font-weight:600;">${faq.q}</span> <span class="arrow">⌄</span>
-        <div class="dropdown-content hidden">${faq.a}</div>`;
-      row.addEventListener('click', () => {
-        row.classList.toggle('expanded');
-        row.querySelector('.dropdown-content').classList.toggle('hidden');
-      });
-      main.appendChild(row);
+    main.innerHTML = `
+      <div style="text-align:center; margin-bottom:3rem;">
+        <h2 style="font-size:2.5rem; font-weight:800; margin-bottom:1rem;">Information & FAQs</h2>
+        <p style="font-size:1.1rem; color:#6e6e73;">Find answers to common questions about careers with us</p>
+      </div>
+      <div style="max-width:900px; margin:0 auto; display:grid; gap:1.25rem;">
+    `;
+    
+    faqs.forEach((faq, index) => {
+      const icons = ['❓', '📝', '✨', '📧'];
+      const colors = ['#007aff', '#34c759', '#ff9500', '#ff3b30'];
+      const icon = icons[index % icons.length];
+      const color = colors[index % colors.length];
+      
+      main.innerHTML += `
+        <div class="faq-row" style="background:#fff; border-radius:16px; padding:1.5rem; box-shadow:0 4px 12px rgba(0,0,0,0.08); cursor:pointer; transition:all 0.3s;">
+          <div style="display:flex; align-items:center; gap:1rem;">
+            <span style="font-size:2rem; min-width:40px; text-align:center;">${icon}</span>
+            <span style="font-weight:700; font-size:1.15rem; flex:1; color:#1d1d1f;">${faq.q}</span>
+            <span class="arrow" style="font-size:1.5rem; color:${color}; transition:transform 0.3s;">⌄</span>
+          </div>
+          <div class="dropdown-content hidden" style="margin-top:1rem; padding-top:1rem; border-top:2px solid #f2f2f7; color:#6e6e73; line-height:1.8; font-size:1rem;">${faq.a}</div>
+        </div>
+      `;
     });
+    
+    main.innerHTML += '</div>';
+    
+    // Add event listeners
+    setTimeout(() => {
+      document.querySelectorAll('.faq-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const content = row.querySelector('.dropdown-content');
+          const arrow = row.querySelector('.arrow');
+          content.classList.toggle('hidden');
+          if (content.classList.contains('hidden')) {
+            arrow.style.transform = 'rotate(0deg)';
+          } else {
+            arrow.style.transform = 'rotate(180deg)';
+          }
+        });
+      });
+    }, 100);
   }
 }
 
