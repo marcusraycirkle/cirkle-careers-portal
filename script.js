@@ -28,7 +28,7 @@ function saveData() {
 }
 
 function generatePin() {
-  return Math.random().toString(36).substr(2, 12).toUpperCase();
+  return Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0');
 }
 
 function playSuccessSound() {
@@ -44,15 +44,25 @@ function showNotification(msg) {
   }
 }
 
-function showPopup(content, fullScreen = false) {
+function showPopup(content, fullScreen = false, onClose = null) {
   const overlay = document.getElementById('popup-overlay');
   const popup = document.getElementById('popup');
   if (overlay && popup) {
-    popup.innerHTML = content + '<button class="close-popup" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">×</button>';
-    if (fullScreen) popup.style.maxWidth = '100%';
+    popup.innerHTML = content + '<button class="close-popup" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#000;font-weight:700;">×</button>';
+    if (fullScreen) {
+      popup.style.maxWidth = '95%';
+      popup.style.maxHeight = '95vh';
+      popup.style.width = '95%';
+    } else {
+      popup.style.maxWidth = '600px';
+      popup.style.width = 'auto';
+    }
     overlay.classList.remove('hidden');
     popup.classList.remove('hidden');
-    document.querySelector('.close-popup')?.addEventListener('click', hidePopup);
+    document.querySelector('.close-popup')?.addEventListener('click', () => {
+      hidePopup();
+      if (onClose) onClose();
+    });
   }
 }
 
@@ -67,19 +77,62 @@ function hidePopup() {
 
 function showLoading() {
   const overlay = document.getElementById('popup-overlay');
-  if (overlay) {
-    overlay.innerHTML = '<div class="loading-overlay"><div style="border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;width:40px;height:40px;animation:spin 2s linear infinite;"></div></style><style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style></div>';
+  const popup = document.getElementById('popup');
+  if (overlay && popup) {
+    popup.classList.add('hidden');
+    overlay.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
     overlay.classList.remove('hidden');
+  }
+}
+
+function showSuccessScreen(message, pin = null) {
+  const overlay = document.getElementById('popup-overlay');
+  const popup = document.getElementById('popup');
+  if (overlay && popup) {
+    popup.classList.add('hidden');
+    let content = `
+      <div class="success-screen">
+        <div class="tick">✓</div>
+        <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">${message}</h2>`;
+    if (pin) {
+      content += `
+        <p style="font-size:1.1rem; margin-bottom:0.5rem;">Here is your candidate PIN to view your status:</p>
+        <p style="font-size:1.5rem; font-weight:700; color:#007aff; margin-bottom:1rem;">${pin}</p>
+        <p style="font-size:0.9rem; color:#6e6e73; max-width:400px; margin:0 auto;">We recommend checking everyday for an update. Please only use this on this current device as this website is stored locally.</p>`;
+    }
+    content += '</div>';
+    overlay.innerHTML = content;
+    overlay.classList.remove('hidden');
+    setTimeout(() => {
+      hidePopup();
+    }, 5000);
   }
 }
 
 // Routing
 function navigate(hash) {
   window.location.hash = hash;
-  renderPage();
 }
 
-window.addEventListener('hashchange', renderPage);
+function updateHeader() {
+  const header = document.getElementById('public-header');
+  const footer = document.getElementById('footer');
+  const hash = window.location.hash.slice(1) || 'home';
+  
+  if (hash.startsWith('employerportal/') || hash.startsWith('apply/')) {
+    header?.classList.add('hidden');
+    footer?.classList.add('hidden');
+  } else {
+    header?.classList.remove('hidden');
+    footer?.classList.remove('hidden');
+  }
+}
+
+window.addEventListener('hashchange', () => {
+  updateHeader();
+  renderPage();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('employer-login-btn')?.addEventListener('click', () => {
     document.getElementById('login-dropdown')?.classList.toggle('hidden');
@@ -88,17 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-nav]')?.forEach(btn => {
     btn.addEventListener('click', () => navigate(btn.dataset.nav));
   });
-  // Home Background Fade
-  const images = ['https://via.placeholder.com/1400x300?text=Professional+Img1', 'https://via.placeholder.com/1400x300?text=Professional+Img2'];
-  let idx = 0;
-  setInterval(() => {
-    const imgs = document.querySelectorAll('.background-images img');
-    if (imgs.length) {
-      imgs[idx].classList.remove('active');
-      idx = (idx + 1) % images.length;
-      imgs[idx].classList.add('active');
-    }
-  }, 2000);
+  updateHeader();
   renderPage();
 });
 
@@ -112,12 +155,50 @@ async function login() {
       if (USERS[id] && USERS[id].pin === pin) {
         currentUser = USERS[id];
         loading.textContent = 'Profile fetched!';
-        setTimeout(() => navigate('employerportal/home'), 1000);
+        setTimeout(() => navigate('employerportal/dashboard'), 1000);
       } else {
         alert('Invalid credentials');
         loading.classList.add('hidden');
       }
-    }, 3000);
+    }, 2000);
+  }
+}
+
+// Logout function
+function logout() {
+  const overlay = document.getElementById('popup-overlay');
+  const popup = document.getElementById('popup');
+  
+  if (overlay && popup) {
+    // Show loading animation
+    popup.classList.add('hidden');
+    overlay.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+    overlay.classList.remove('hidden');
+    
+    setTimeout(() => {
+      // Show goodbye message
+      overlay.innerHTML = `
+        <div class="success-screen">
+          <div class="tick">👋</div>
+          <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Goodbye, ${currentUser.name}.</h2>
+          <p style="font-size:1rem; color:#6e6e73;">Thank you for using the portal.</p>
+        </div>
+      `;
+      
+      setTimeout(() => {
+        // Clear user and remove menu
+        currentUser = null;
+        const menu = document.querySelector('.side-menu');
+        if (menu) menu.remove();
+        
+        // Hide overlay and navigate home
+        overlay.classList.add('hidden');
+        
+        // Refresh and go to home
+        window.location.hash = '';
+        window.location.reload();
+      }, 2000);
+    }, 1500);
   }
 }
 
@@ -137,16 +218,26 @@ function renderPage() {
   if (main) {
     main.innerHTML = '';
     main.style.animation = 'fadeIn 0.5s ease-in';
+    
     if (hash.startsWith('employerportal/')) {
       if (!currentUser) return navigate('home');
-      renderEmployerPage(hash.split('/')[1]);
+      const subpage = hash.split('/')[1];
+      renderEmployerPage(subpage);
+    } else if (hash.startsWith('apply/')) {
+      const jobId = parseInt(hash.split('/')[1]);
+      renderApplicationPage(jobId);
     } else {
       switch (hash) {
         case 'home': renderHome(); break;
         case 'vacancies': renderVacancies(); break;
         case 'information': renderInformation(); break;
         case 'candidate-status': renderCandidateStatus(); break;
-        default: renderHome();
+        default: 
+          if (hash.startsWith('company/')) {
+            renderCompanyJobs(decodeURIComponent(hash.split('/')[1]));
+          } else {
+            renderHome();
+          }
       }
     }
   }
@@ -179,7 +270,7 @@ function renderVacancies() {
       row.innerHTML = `<img src="https://via.placeholder.com/56?text=${company[0]}" alt="${company}">
         <span class="name">${company}</span>
         <span class="count">${count}</span>`;
-      row.addEventListener('click', () => renderCompanyJobs(company));
+      row.addEventListener('click', () => navigate(`company/${encodeURIComponent(company)}`));
       main.appendChild(row);
     });
   }
@@ -208,77 +299,133 @@ function showJobPopup(job) {
     job.clicks++;
     saveData();
     showPopup(`
-      <h2 style="font-size:2rem; font-weight:600;">${job.title}</h2>
-      <p>${job.description}</p>
-      <p>Payment: ${job.payment}</p>
-      <button class="big" onclick="applyForJob(${job.id})" style="width:100%;">Apply Now!</button>
-    `);
+      <h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">${job.title}</h2>
+      <p style="margin-bottom:1rem; line-height:1.6;">${job.description}</p>
+      <p style="font-weight:600; margin-bottom:1.5rem;">Payment: ${job.payment}</p>
+      <button class="big" onclick="navigate('apply/${job.id}'); hidePopup();" style="width:100%;">Apply Now</button>
+    `, false);
   }
 }
 
-function applyForJob(jobId) {
+function renderApplicationPage(jobId) {
   const job = jobs.find(j => j.id === jobId);
-  if (job) {
-    let content = `<h2 style="font-size:2rem; font-weight:600;">Apply for ${job.title}</h2><p>${job.description}</p>`;
-    if (job.options.name) content += '<input type="text" id="app-name" placeholder="Your Name" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;"><br>';
-    if (job.options.email) content += '<input type="email" id="app-email" placeholder="Your Email" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;"><br>';
-    if (job.options.discord) content += '<input type="text" id="app-discord" placeholder="Discord ID" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.5rem;"><button onclick="searchDiscord()" style="width:100%; margin-bottom:1rem;">Search Profile</button><br>';
-    if (job.options.roblox) content += '<input type="text" id="app-roblox" placeholder="Roblox ID" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.5rem;"><button onclick="searchRoblox()" style="width:100%; margin-bottom:1rem;">Search Profile</button><br>';
-    if (job.options.cv) content += '<label for="app-cv" style="display:block; margin-bottom:0.5rem;">Upload CV</label><input type="file" id="app-cv" style="width:100%; margin-bottom:1rem;"><br>';
-    if (job.options.experience) content += '<textarea id="app-experience" placeholder="Past Experience (max 3000 chars)" maxlength="3000" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem; height:150px;"></textarea><br>';
-    job.questions.forEach((q, i) => {
-      content += `<h3 style="font-size:1.3rem; font-weight:600; margin-top:1.5rem;">${q.title}</h3><p style="color:#6e6e73;">${q.desc || ''}</p>`;
-      if (q.type === 'short') content += `<input type="text" id="q-${i}" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;"><br>`;
-      if (q.type === 'paragraph') content += `<textarea id="q-${i}" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem; height:120px;"></textarea><br>`;
-      if (q.type === 'multiple' || q.type === 'multi') {
-        q.options.forEach(opt => {
-          content += `<label style="display:block; margin-bottom:0.5rem;"><input type="${q.type === 'multiple' ? 'radio' : 'checkbox'}" name="q-${i}" value="${opt}">${opt}</label>`;
-        });
-        content += '<br>';
-      }
-    });
-    content += '<button class="big" onclick="submitApplication(' + jobId + ')" style="width:100%;">Submit Application</button>';
-    showPopup(content, true);
+  const main = document.getElementById('main-content');
+  if (!job || !main) {
+    navigate('home');
+    return;
   }
+  
+  main.style.padding = '2rem';
+  let content = `
+    <div style="max-width:800px; margin:0 auto;">
+      <h1 style="font-size:2.5rem; font-weight:700; margin-bottom:1rem;">${job.title}</h1>
+      <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6;">${job.description}</p>
+      <p style="font-weight:600; margin-bottom:2rem;">Payment: ${job.payment}</p>
+      <div style="background:#fff; padding:2rem; border-radius:20px; box-shadow:0 4px 16px rgba(0,0,0,0.08);">`;
+  
+  if (job.options.name) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Full Name *</label><input type="text" id="app-name" placeholder="Enter your full name" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;"><br>';
+  
+  if (job.options.email) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Email Address *</label><input type="email" id="app-email" placeholder="Enter your email" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;"><br>';
+  
+  if (job.options.discord) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Discord ID *</label><input type="text" id="app-discord" placeholder="Enter your Discord ID" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;"><br>';
+  
+  if (job.options.roblox) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Roblox ID *</label><input type="text" id="app-roblox" placeholder="Enter your Roblox ID" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;"><br>';
+  
+  if (job.options.cv) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Upload CV (Optional)</label><input type="file" id="app-cv" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem;"><br>';
+  
+  if (job.options.experience) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Past Experience *</label><textarea id="app-experience" placeholder="Describe your relevant experience (max 3000 chars)" maxlength="3000" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; height:150px; resize:vertical; transition:border 0.3s;"></textarea><br>';
+  
+  if (job.questions.length > 0) {
+    content += '<div style="margin-top:2rem; padding-top:2rem; border-top:2px solid #f2f2f7;">';
+    content += '<h3 style="font-size:1.5rem; font-weight:600; margin-bottom:1.5rem;">Additional Questions</h3>';
+    
+    job.questions.forEach((q, i) => {
+      content += `<div style="margin-bottom:2rem;">`;
+      content += `<h4 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${q.title}</h4>`;
+      if (q.desc) content += `<p style="color:#6e6e73; margin-bottom:0.75rem; font-size:0.95rem;">${q.desc}</p>`;
+      
+      if (q.type === 'short') {
+        content += `<input type="text" id="q-${i}" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; transition:border 0.3s;">`;
+      } else if (q.type === 'paragraph') {
+        content += `<textarea id="q-${i}" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; height:120px; resize:vertical; transition:border 0.3s;"></textarea>`;
+      } else if (q.type === 'multiple') {
+        q.options.forEach(opt => {
+          content += `<label style="display:block; margin-bottom:0.75rem; padding:0.75rem; background:#f9f9fb; border-radius:8px; cursor:pointer; transition:background 0.3s;">
+            <input type="radio" name="q-${i}" value="${opt}" style="margin-right:0.5rem;"> ${opt}
+          </label>`;
+        });
+      } else if (q.type === 'multi') {
+        q.options.forEach(opt => {
+          content += `<label style="display:block; margin-bottom:0.75rem; padding:0.75rem; background:#f9f9fb; border-radius:8px; cursor:pointer; transition:background 0.3s;">
+            <input type="checkbox" name="q-${i}" value="${opt}" style="margin-right:0.5rem;"> ${opt}
+          </label>`;
+        });
+      }
+      content += '</div>';
+    });
+    content += '</div>';
+  }
+  
+  content += '<button class="big" onclick="submitApplication(' + jobId + ')" style="width:100%; margin-top:2rem; padding:1.2rem; font-size:1.2rem;">Submit Application</button>';
+  content += '</div></div>';
+  
+  main.innerHTML = content;
 }
 
 async function searchDiscord() {
-  const id = document.getElementById('app-discord')?.value;
-  if (id) showNotification(`Fetched Discord profile for ID: ${id}`);
+  // Removed as requested
 }
 
 async function searchRoblox() {
-  const id = document.getElementById('app-roblox')?.value;
-  if (id) {
-    const data = await fetchRoblox(id);
-    showNotification(`Fetched Roblox profile: ${data.username}`);
-  }
+  // Removed as requested
 }
 
 function submitApplication(jobId) {
   showLoading();
   setTimeout(() => {
-    const app = { id: Date.now(), jobId, data: {}, pin: generatePin(), status: 'Pending', handler: '' };
+    const app = { 
+      id: Date.now(), 
+      jobId, 
+      data: {}, 
+      pin: generatePin(), 
+      status: 'Processing', 
+      handler: '',
+      appliedDate: new Date().toISOString()
+    };
     const job = jobs.find(j => j.id === jobId);
     if (job) {
       if (job.options.name) app.data.name = document.getElementById('app-name')?.value || '';
       if (job.options.email) app.data.email = document.getElementById('app-email')?.value || '';
-      if (job.options.discord) app.data.discord = document.getElementById('app-discord')?.value || '';
-      if (job.options.roblox) app.data.roblox = document.getElementById('app-roblox')?.value || '';
+      if (job.options.discord) {
+        const discordId = document.getElementById('app-discord')?.value || '';
+        app.data.discord = discordId;
+        app.data.discordPfp = `https://cdn.discordapp.com/embed/avatars/${Math.floor(Math.random() * 6)}.png`;
+      }
+      if (job.options.roblox) {
+        const robloxId = document.getElementById('app-roblox')?.value || '';
+        app.data.roblox = robloxId;
+        app.data.robloxAvatar = `https://via.placeholder.com/48?text=R`;
+      }
       if (job.options.cv) app.data.cv = document.getElementById('app-cv')?.files[0] ? 'CV attached' : '';
       if (job.options.experience) app.data.experience = document.getElementById('app-experience')?.value || '';
+      
+      app.data.answers = {};
       job.questions.forEach((q, i) => {
-        if (q.type === 'short' || q.type === 'paragraph') app.data[q.title] = document.getElementById(`q-${i}`)?.value || '';
-        else if (q.type === 'multiple' || q.type === 'multi') {
+        if (q.type === 'short' || q.type === 'paragraph') {
+          app.data.answers[q.title] = document.getElementById(`q-${i}`)?.value || '';
+        } else if (q.type === 'multiple' || q.type === 'multi') {
           const selected = document.querySelectorAll(`input[name="q-${i}"]:checked`);
-          app.data[q.title] = Array.from(selected).map(input => input.value).join(', ');
+          app.data.answers[q.title] = Array.from(selected).map(input => input.value).join(', ');
         }
       });
+      
       job.submissions++;
       applications.push(app);
+      chats[app.id] = [];
       saveData();
-      hidePopup();
-      showPopup(`Successfully submitted. Your PIN: ${app.pin}. Keep it safe to check status.`, false);
+      
+      showSuccessScreen('Successfully Applied!', app.pin);
+      setTimeout(() => navigate('home'), 5000);
     }
   }, 2000);
 }
@@ -292,12 +439,26 @@ function checkStatus() {
   if (pin) {
     const app = applications.find(a => a.pin === pin) || processed.find(h => h.pin === pin);
     if (app) {
-      let msg = `<h2>Application Status</h2><p>Status: ${app.status}</p>`;
-      if (app.status === 'Rejected') msg += `<p>Reason: ${app.reason || 'Not provided'}</p>`;
-      if (app.status === 'Hired') msg += '<p>Congratulations!</p>';
+      let msg = `<h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Application Status</h2>`;
+      
+      if (app.status === 'Rejected') {
+        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">You have been <span style="background:#ff3b30; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">rejected</span> by employer.</p>`;
+        msg += `<p style="font-size:1rem; margin-bottom:0.5rem;"><strong>Reason:</strong> ${app.reason || 'Not provided'}</p>`;
+        msg += `<p style="font-size:0.9rem; color:#6e6e73;">Contact us if you have further concerns.</p>`;
+      } else if (app.status === 'Hired') {
+        msg += `<p style="font-size:1.2rem; margin-bottom:1rem;">You have been <span style="background:#34c759; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">hired</span> by employer.</p>`;
+        msg += `<p style="font-size:1rem; color:#6e6e73;">Please check your emails and Discord DMs.</p>`;
+      } else if (app.status === 'Extra Time') {
+        msg += `<p style="font-size:1.2rem;">Status: <span style="background:#ffcc00; color:#000; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">Extra Time</span></p>`;
+        msg += `<p style="font-size:0.9rem; color:#6e6e73; margin-top:0.5rem;">Your application is being reviewed. Please check back later.</p>`;
+      } else {
+        msg += `<p style="font-size:1.2rem;">Status: <span style="background:#007aff; color:#fff; padding:0.25rem 0.75rem; border-radius:6px; font-weight:600;">${app.status}</span></p>`;
+        msg += `<p style="font-size:0.9rem; color:#6e6e73; margin-top:0.5rem;">Your application is being processed.</p>`;
+      }
+      
       showPopup(msg);
     } else {
-      alert('Invalid PIN');
+      showNotification('Invalid PIN. Please check and try again.');
     }
   }
 }
@@ -324,104 +485,233 @@ function renderInformation() {
 function renderEmployerPage(page) {
   const main = document.getElementById('main-content');
   if (main) {
-    main.id = 'employer-dashboard';
-    main.innerHTML = `
-      <div style="display:flex; align-items:center; margin-bottom:2rem;">
-        <img src="${currentUser.pfp}" alt="PFP" style="border-radius:50%; width:56px; height:56px; margin-right:1rem;">
-        <div>
-          <h2 style="font-size:2rem; font-weight:600; margin:0;">Welcome, ${currentUser.name}</h2>
-          <p style="font-size:1rem; color:#6e6e73; margin:0;">${currentUser.role}</p>
-        </div>
-      </div>`;
+    main.id = 'employer-main';
+    
+    // Create side menu if it doesn't exist
     if (!document.querySelector('.side-menu')) {
       const menu = document.createElement('div');
-      menu.classList.add('side-menu');
+      menu.classList.add('side-menu', 'open');
       menu.innerHTML = `
-        <button data-emp="dashboard">Dashboard</button>
-        <button data-emp="candidates">Candidate Management</button>
-        <button data-emp="jobs">Job Listings</button>`;
+        <div class="pfp">
+          <img src="${currentUser.pfp}" alt="${currentUser.name}">
+          <h3 style="margin-top:0.75rem; font-size:1.1rem;">${currentUser.name}</h3>
+          <p style="color:#6e6e73; font-size:0.9rem;">${currentUser.role}</p>
+        </div>
+        <button data-emp="dashboard" class="menu-btn ${page === 'dashboard' ? 'active' : ''}">Dashboard</button>
+        <button data-emp="candidatemanagement" class="menu-btn ${page === 'candidatemanagement' ? 'active' : ''}">Candidate Management</button>
+        <button data-emp="joblistings" class="menu-btn ${page === 'joblistings' ? 'active' : ''}">Job Listings</button>
+        <button class="logout" onclick="logout()">Log Out</button>
+      `;
       document.body.appendChild(menu);
-      setTimeout(() => menu.classList.add('open'), 100);
+      
+      document.querySelectorAll('[data-emp]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          navigate(`employerportal/${btn.dataset.emp}`);
+        });
+      });
+    } else {
+      // Update active state
+      document.querySelectorAll('.menu-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.emp === page);
+      });
     }
-    document.querySelectorAll('[data-emp]')?.forEach(btn => {
-      btn.addEventListener('click', () => renderEmployerSubPage(btn.dataset.emp));
-    });
+    
     renderEmployerSubPage(page || 'dashboard');
   }
 }
 
 function renderEmployerSubPage(sub) {
-  const contentArea = document.getElementById('employer-dashboard') || document.getElementById('main-content');
-  if (contentArea) {
-    let subContent = '';
-    switch (sub) {
-      case 'dashboard':
-        subContent += '<div class="box"><h3>Tasks Assigned to you:</h3><ul style="list-style:none; padding:0;">' + applications.filter(a => jobs.find(j => j.id === a.jobId)?.assigned.includes(currentUser.name)).map(a => `<li style="padding:0.5rem 0; border-bottom:1px solid #f2f2f7;">${jobs.find(j => j.id === a.jobId)?.title || 'Unknown'}</li>`).join('') + '</ul></div>';
-        subContent += '<div class="box"><h3>Your Activity</h3><canvas id="activity-chart" style="height:200px;"></canvas></div>';
-        contentArea.innerHTML = subContent;
+  const contentArea = document.getElementById('employer-main');
+  if (!contentArea) return;
+  
+  let subContent = '';
+  
+  switch (sub) {
+    case 'dashboard':
+      subContent = `
+        <h2 style="font-size:2rem; font-weight:700; margin-bottom:2rem;">Dashboard</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
+          <div class="box">
+            <h3>Assigned Applications</h3>
+            <p style="font-size:2.5rem; font-weight:700; color:#007aff; margin:1rem 0;">${applications.filter(a => jobs.find(j => j.id === a.jobId)?.assigned.includes(currentUser.name)).length}</p>
+          </div>
+          <div class="box">
+            <h3>Total Job Listings</h3>
+            <p style="font-size:2.5rem; font-weight:700; color:#34c759; margin:1rem 0;">${jobs.length}</p>
+          </div>
+          <div class="box">
+            <h3>Processed Applications</h3>
+            <p style="font-size:2.5rem; font-weight:700; color:#ff3b30; margin:1rem 0;">${processed.filter(p => p.handler === currentUser.name).length}</p>
+          </div>
+        </div>
+        <div class="box" style="margin-top:1.5rem;">
+          <h3>Your Activity</h3>
+          <canvas id="activity-chart" style="max-height:300px;"></canvas>
+        </div>
+      `;
+      contentArea.innerHTML = subContent;
+      
+      setTimeout(() => {
         const accepted = processed.filter(p => p.status === 'Hired' && p.handler === currentUser.name).length;
         const declined = processed.filter(p => p.status === 'Rejected' && p.handler === currentUser.name).length;
-        const noOpinion = applications.filter(a => jobs.find(j => j.id === a.jobId)?.assigned.includes(currentUser.name)).length;
-        // Chart configuration
-        const chartConfig = {
-          type: 'pie',
+        const pending = applications.filter(a => jobs.find(j => j.id === a.jobId)?.assigned.includes(currentUser.name)).length;
+        
+        new Chart(document.getElementById('activity-chart'), {
+          type: 'doughnut',
           data: {
-            labels: ['Accepted', 'Declined', 'No Opinion'],
+            labels: ['Hired', 'Rejected', 'Pending'],
             datasets: [{
-              data: [accepted, declined, noOpinion],
-              backgroundColor: ['#34c759', '#ff3b30', '#ffcc00']
+              data: [accepted, declined, pending],
+              backgroundColor: ['#34c759', '#ff3b30', '#ffcc00'],
+              borderWidth: 0
             }]
           },
-          options: { responsive: true, maintainAspectRatio: false }
-        };
-        new Chart(document.getElementById('activity-chart'), chartConfig);
-        break;
-      case 'jobs':
-        subContent += '<button class="big" onclick="createJob()" style="margin-bottom:2rem;">Create a Job Listing</button>';
-        if (jobs.length === 0) subContent += '<p style="font-size:1.1rem; color:#6e6e73;">No job listings yet. Create one above.</p>';
-        jobs.forEach(job => {
-          subContent += `<div class="job-row">
-            <div class="indicator ${job.active ? 'green' : 'grey'}" onclick="toggleJob(${job.id})"></div>
-            <span style="flex:1; font-weight:600;">${job.title}</span>
-            <span style="color:#6e6e73; margin-right:1rem;">Created: ${job.creationDate.slice(0,10)}</span>
-            <span style="color:#6e6e73; margin-right:1rem;">By: ${job.createdBy}</span>
-            <span style="color:#6e6e73; margin-right:1rem;">Last Open: ${job.lastOpen.slice(0,10)}</span>
-            <span class="trash" onclick="deleteJob(${job.id})">🗑</span>
-          </div>`;
-        });
-        contentArea.innerHTML = subContent;
-        document.querySelectorAll('.job-row')?.forEach(row => {
-          row.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('indicator') && !e.target.classList.contains('trash')) {
-              viewJob(parseInt(row.querySelector('.indicator').getAttribute('onclick').match(/\d+/)[0]));
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { padding: 20, font: { size: 14 } }
+              }
             }
-          });
+          }
         });
-        break;
-      case 'candidates':
-        subContent += '<h3 style="font-size:1.5rem; font-weight:600; margin-bottom:1rem;">Incoming Applications</h3><div class="grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1.5rem;">';
-        applications.forEach(app => {
-          subContent += `<div class="box" style="cursor:pointer;" onclick="viewApplication(${app.id})">
-            <div style="display:flex; align-items:center; margin-bottom:1rem;">
-              <img src="${app.data.discordPfp || 'https://via.placeholder.com/48'}" style="border-radius:50%; margin-right:0.75rem; width:48px; height:48px;">
-              <img src="${app.data.robloxAvatar || 'https://via.placeholder.com/48'}" style="border-radius:50%; width:48px; height:48px;">
+      }, 100);
+      break;
+      
+    case 'joblistings':
+      subContent = `
+        <h2 style="font-size:2rem; font-weight:700; margin-bottom:1.5rem;">Job Listings</h2>
+        <button class="big" onclick="createJob()" style="margin-bottom:2rem;">+ Create New Job Listing</button>
+      `;
+      
+      if (jobs.length === 0) {
+        subContent += '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No job listings yet. Create your first one above!</p></div>';
+      } else {
+        jobs.forEach(job => {
+          subContent += `
+            <div class="job-row" data-job-id="${job.id}" style="cursor:pointer;">
+              <div class="indicator ${job.active ? 'green' : 'grey'}" onclick="event.stopPropagation(); toggleJobStatus(${job.id})"></div>
+              <div style="flex:1;">
+                <div style="font-size:1.2rem; font-weight:600; margin-bottom:0.25rem;">${job.title}</div>
+                <div style="font-size:0.85rem; color:#6e6e73;">${job.company}</div>
+              </div>
+              <span style="color:#6e6e73; font-size:0.85rem; margin-right:1rem;">Created: ${new Date(job.creationDate).toLocaleDateString()}</span>
+              <span style="color:#6e6e73; font-size:0.85rem; margin-right:1rem;">By: ${job.createdBy}</span>
+              <span style="color:#6e6e73; font-size:0.85rem; margin-right:1rem;">Submissions: ${job.submissions}</span>
+              <span class="trash" onclick="event.stopPropagation(); deleteJob(${job.id})">🗑</span>
             </div>
-            <span style="font-weight:600;">${app.data.name || 'Anonymous'}</span>
-            <span style="color:#6e6e73;">Position: ${jobs.find(j => j.id === app.jobId)?.title || 'N/A'}</span>
-            <span style="color:#6e6e73;">Company: ${jobs.find(j => j.id === app.jobId)?.company || 'N/A'}</span>
-          </div>`;
+          `;
         });
-        subContent += '</div><h3 style="font-size:1.5rem; font-weight:600; margin:2rem 0 1rem;">Processed Candidates</h3><div class="grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1.5rem;">';
-        processed.forEach(h => {
-          subContent += `<div class="box" style="background:${h.status === 'Hired' ? '#eaffea' : '#ffeaea'};">
-            <span style="font-weight:600;">${jobs.find(j => j.id === h.jobId)?.title || 'N/A'}</span>
-            <span style="color:#6e6e73;">Status: ${h.status}</span>
-          </div>`;
+      }
+      
+      contentArea.innerHTML = subContent;
+      
+      document.querySelectorAll('.job-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('indicator') && !e.target.classList.contains('trash')) {
+            const jobId = parseInt(row.dataset.jobId);
+            viewJobDetails(jobId);
+          }
         });
-        subContent += '</div>';
-        contentArea.innerHTML = subContent;
-        break;
-    }
+      });
+      break;
+      
+    case 'candidatemanagement':
+      const tabs = ['processing', 'hired', 'rejected'];
+      const currentTab = 'processing';
+      
+      subContent = `
+        <h2 style="font-size:2rem; font-weight:700; margin-bottom:1.5rem;">Candidate Management</h2>
+        <div class="tab-buttons" style="margin-bottom:2rem;">
+          <button class="tab-btn active" data-tab="processing">Processing (${applications.length})</button>
+          <button class="tab-btn" data-tab="hired">Hired (${processed.filter(p => p.status === 'Hired').length})</button>
+          <button class="tab-btn" data-tab="rejected">Rejected (${processed.filter(p => p.status === 'Rejected').length})</button>
+        </div>
+        <div id="candidates-content"></div>
+      `;
+      
+      contentArea.innerHTML = subContent;
+      
+      function renderCandidatesTab(tab) {
+        const content = document.getElementById('candidates-content');
+        if (!content) return;
+        
+        let html = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem;">';
+        
+        if (tab === 'processing') {
+          if (applications.length === 0) {
+            html = '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No pending applications</p></div>';
+          } else {
+            applications.forEach(app => {
+              const job = jobs.find(j => j.id === app.jobId);
+              html += `
+                <div class="card" onclick="viewApplicationDetails(${app.id})" style="text-align:left; padding:1.5rem;">
+                  <div style="display:flex; gap:0.75rem; margin-bottom:1rem;">
+                    <img src="${app.data.discordPfp || 'https://via.placeholder.com/56'}" style="width:56px; height:56px; border-radius:50%; border:3px solid #007aff;">
+                  </div>
+                  <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${app.data.name || 'Anonymous'}</h3>
+                  <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>
+                  <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Company:</strong> ${job?.company || 'N/A'}</p>
+                  <p style="color:#6e6e73; font-size:0.85rem; margin-top:0.75rem;">Applied: ${new Date(app.appliedDate).toLocaleString()}</p>
+                </div>
+              `;
+            });
+          }
+        } else if (tab === 'hired') {
+          const hiredApps = processed.filter(p => p.status === 'Hired');
+          if (hiredApps.length === 0) {
+            html = '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No hired candidates</p></div>';
+          } else {
+            hiredApps.forEach(app => {
+              const job = jobs.find(j => j.id === app.jobId);
+              html += `
+                <div class="card" style="text-align:left; padding:1.5rem; background:#eaffea; border:2px solid #34c759;">
+                  <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${app.data.name || 'Anonymous'}</h3>
+                  <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>
+                  <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Company:</strong> ${job?.company || 'N/A'}</p>
+                  <p style="color:#34c759; font-size:0.9rem; font-weight:600; margin-top:0.75rem;">✓ Hired by ${app.handler}</p>
+                </div>
+              `;
+            });
+          }
+        } else if (tab === 'rejected') {
+          const rejectedApps = processed.filter(p => p.status === 'Rejected');
+          if (rejectedApps.length === 0) {
+            html = '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No rejected candidates</p></div>';
+          } else {
+            rejectedApps.forEach(app => {
+              const job = jobs.find(j => j.id === app.jobId);
+              html += `
+                <div class="card" style="text-align:left; padding:1.5rem; background:#ffeaea; border:2px solid #ff3b30;">
+                  <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${app.data.name || 'Anonymous'}</h3>
+                  <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>
+                  <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Company:</strong> ${job?.company || 'N/A'}</p>
+                  <p style="color:#ff3b30; font-size:0.9rem; font-weight:600; margin-top:0.75rem;">✗ Rejected by ${app.handler}</p>
+                  <p style="color:#6e6e73; font-size:0.85rem; margin-top:0.5rem;">Reason: ${app.reason || 'N/A'}</p>
+                </div>
+              `;
+            });
+          }
+        }
+        
+        html += '</div>';
+        content.innerHTML = html;
+      }
+      
+      renderCandidatesTab('processing');
+      
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderCandidatesTab(btn.dataset.tab);
+        });
+      });
+      break;
   }
 }
 
@@ -580,7 +870,7 @@ function submitJob() {
     showNotification(`Successfully created new listing: ${newJob.title}`);
     if (newJob.assigned.includes(currentUser.name)) showNotification(`You have been assigned to listing: ${newJob.title}`);
     hidePopup();
-    renderEmployerSubPage('jobs');
+    renderEmployerSubPage('joblistings');
   } else {
     showNotification('Please fill all required fields.');
   }
@@ -594,7 +884,271 @@ function toggleJob(id) {
     saveData();
     playSuccessSound();
     showNotification(`Successfully updated status: ${job.active ? 'Open' : 'Closed'}`);
-    renderEmployerSubPage('jobs');
+    renderEmployerSubPage('joblistings');
+  }
+}
+
+function toggleJobStatus(id) {
+  toggleJob(id);
+}
+
+function viewJobDetails(id) {
+  const job = jobs.find(j => j.id === id);
+  if (!job) return;
+  
+  let content = `
+    <div style="max-width:900px;">
+      <h2 style="font-size:2.5rem; font-weight:700; margin-bottom:1rem;">${job.title}</h2>
+      <div style="display:inline-block; padding:0.5rem 1rem; background:${job.active ? '#34c759' : '#8e8e93'}; color:#fff; border-radius:20px; font-size:0.9rem; font-weight:600; margin-bottom:1.5rem;">
+        ${job.active ? '● Open' : '● Closed'}
+      </div>
+      
+      <div class="box" style="margin-bottom:1.5rem;">
+        <h3>Description</h3>
+        <p style="line-height:1.6; color:#000;">${job.description}</p>
+      </div>
+      
+      <div class="box" style="margin-bottom:1.5rem;">
+        <h3>Payment Information</h3>
+        <p style="font-size:1.1rem; color:#000;">${job.payment}</p>
+      </div>
+      
+      <div class="box" style="margin-bottom:1.5rem;">
+        <h3>Job Details</h3>
+        <p><strong>Company:</strong> ${job.company}</p>
+        <p><strong>Created by:</strong> ${job.createdBy}</p>
+        <p><strong>Created on:</strong> ${new Date(job.creationDate).toLocaleString()}</p>
+        <p><strong>Last opened:</strong> ${new Date(job.lastOpen).toLocaleString()}</p>
+        <p><strong>Total clicks:</strong> ${job.clicks}</p>
+        <p><strong>Total submissions:</strong> ${job.submissions}</p>
+      </div>
+      
+      <div class="box" style="margin-bottom:1.5rem;">
+        <h3>Application Requirements</h3>
+        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.75rem;">
+          ${Object.keys(job.options).map(opt => `
+            <div style="padding:0.75rem; background:#f9f9fb; border-radius:8px;">
+              ${job.options[opt] ? '<span style="color:#34c759; font-size:1.2rem;">✓</span>' : '<span style="color:#ff3b30; font-size:1.2rem;">✗</span>'}
+              <strong style="margin-left:0.5rem;">${opt.charAt(0).toUpperCase() + opt.slice(1)}</strong>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      
+      ${job.questions.length > 0 ? `
+        <div class="box">
+          <h3>Extra Questions (${job.questions.length})</h3>
+          ${job.questions.map((q, i) => `
+            <div style="padding:1rem; background:#f9f9fb; border-radius:12px; margin-bottom:1rem;">
+              <h4 style="font-size:1.1rem; font-weight:600; margin-bottom:0.5rem;">${i + 1}. ${q.title}</h4>
+              ${q.desc ? `<p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.5rem;">${q.desc}</p>` : ''}
+              <p style="font-size:0.85rem; color:#007aff; font-weight:600;">Type: ${q.type.charAt(0).toUpperCase() + q.type.slice(1)}</p>
+              ${q.options && q.options.length > 0 ? `
+                <div style="margin-top:0.75rem;">
+                  <p style="font-size:0.9rem; font-weight:600; margin-bottom:0.5rem;">Options:</p>
+                  ${q.options.map(opt => `<span style="display:inline-block; padding:0.25rem 0.75rem; background:#fff; border-radius:12px; margin-right:0.5rem; margin-bottom:0.5rem; font-size:0.85rem;">${opt}</span>`).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  showPopup(content, true);
+}
+
+function viewApplicationDetails(id) {
+  const app = applications.find(a => a.id === id);
+  if (!app) return;
+  
+  const job = jobs.find(j => j.id === app.jobId);
+  
+  let content = `
+    <div style="max-width:1200px; display:flex; gap:2rem;">
+      <div style="flex:2;">
+        <h2 style="font-size:2rem; font-weight:700; margin-bottom:1.5rem;">Application for ${job?.title || 'N/A'}</h2>
+        
+        <div class="box" style="margin-bottom:1.5rem;">
+          <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;">
+            <img src="${app.data.discordPfp || 'https://via.placeholder.com/80'}" style="width:80px; height:80px; border-radius:50%; border:3px solid #007aff;">
+            <div>
+              <h3 style="font-size:1.5rem; margin-bottom:0.25rem;">${app.data.name || 'Anonymous'}</h3>
+              <p style="color:#6e6e73;">Applied: ${new Date(app.appliedDate).toLocaleString()}</p>
+            </div>
+          </div>
+          
+          <div style="display:grid; gap:0.75rem;">
+            ${app.data.email ? `<p><strong>Email:</strong> ${app.data.email}</p>` : ''}
+            ${app.data.discord ? `<p><strong>Discord ID:</strong> ${app.data.discord}</p>` : ''}
+            ${app.data.roblox ? `<p><strong>Roblox ID:</strong> ${app.data.roblox}</p>` : ''}
+            ${app.data.cv ? `<p><strong>CV:</strong> ${app.data.cv}</p>` : ''}
+          </div>
+        </div>
+        
+        ${app.data.experience ? `
+          <div class="box" style="margin-bottom:1.5rem;">
+            <h3>Past Experience</h3>
+            <p style="line-height:1.6; white-space:pre-wrap;">${app.data.experience}</p>
+          </div>
+        ` : ''}
+        
+        ${job && job.questions.length > 0 ? `
+          <div class="box" style="margin-bottom:1.5rem;">
+            <h3>Extra Questions (${job.questions.length})</h3>
+            ${job.questions.map((q, i) => `
+              <div style="padding:1rem; background:#f9f9fb; border-radius:12px; margin-bottom:1rem;">
+                <h4 style="font-size:1.1rem; font-weight:600; margin-bottom:0.5rem;">${q.title}</h4>
+                ${q.desc ? `<p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.5rem;">${q.desc}</p>` : ''}
+                <p style="margin-top:0.75rem; padding:0.75rem; background:#fff; border-radius:8px;"><strong>Answer:</strong> ${app.data.answers?.[q.title] || 'No answer provided'}</p>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        
+        <div class="box">
+          <h3>Feedback Process</h3>
+          <div style="position:relative; display:inline-block; width:100%;">
+            <button id="feedback-btn" style="width:100%; padding:1rem; background:#8e8e93; color:#fff; border:none; border-radius:12px; font-weight:600; cursor:pointer; transition:all 0.3s;">
+              Select Action ▼
+            </button>
+            <div id="feedback-dropdown" class="hidden" style="position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15); margin-top:0.5rem; overflow:hidden; z-index:10;">
+              <button onclick="processFeedback(${app.id}, 'hire')" style="width:100%; padding:1rem; background:none; border:none; text-align:left; cursor:pointer; transition:background 0.3s; font-weight:600; color:#34c759;">✓ Hire</button>
+              <button onclick="processFeedback(${app.id}, 'reject')" style="width:100%; padding:1rem; background:none; border:none; text-align:left; cursor:pointer; transition:background 0.3s; font-weight:600; color:#ff3b30;">✗ Reject</button>
+              <button onclick="processFeedback(${app.id}, 'extratime')" style="width:100%; padding:1rem; background:none; border:none; text-align:left; cursor:pointer; transition:background 0.3s; font-weight:600; color:#ffcc00;">⏱ Extra Time</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="flex:1;">
+        <div class="box" style="position:sticky; top:2rem;">
+          <h3>Discussion Chat</h3>
+          <div id="chat-msgs" style="max-height:300px; overflow-y:auto; margin-bottom:1rem; padding:0.5rem;">
+            ${(chats[app.id] || []).map(m => `
+              <div style="margin-bottom:0.75rem; padding:0.75rem; background:${m.user === currentUser.name ? '#007aff' : '#f2f2f7'}; color:${m.user === currentUser.name ? '#fff' : '#000'}; border-radius:12px;">
+                <strong style="font-size:0.85rem;">${m.user}</strong>
+                <p style="margin-top:0.25rem;">${m.msg}</p>
+              </div>
+            `).join('')}
+          </div>
+          <input id="chat-input" placeholder="Type your message..." style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;">
+          <button onclick="sendChatMessage(${app.id})" class="big" style="width:100%; background:#34c759; margin:0;">Send</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  showPopup(content, true);
+  
+  document.getElementById('feedback-btn')?.addEventListener('click', () => {
+    document.getElementById('feedback-dropdown')?.classList.toggle('hidden');
+  });
+}
+
+function sendChatMessage(appId) {
+  const input = document.getElementById('chat-input');
+  const msg = input?.value;
+  if (msg && currentUser) {
+    if (!chats[appId]) chats[appId] = [];
+    chats[appId].push({ user: currentUser.name, msg });
+    saveData();
+    
+    const chatMsgs = document.getElementById('chat-msgs');
+    if (chatMsgs) {
+      chatMsgs.innerHTML += `
+        <div style="margin-bottom:0.75rem; padding:0.75rem; background:#007aff; color:#fff; border-radius:12px;">
+          <strong style="font-size:0.85rem;">${currentUser.name}</strong>
+          <p style="margin-top:0.25rem;">${msg}</p>
+        </div>
+      `;
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    }
+    
+    input.value = '';
+  }
+}
+
+function processFeedback(appId, action) {
+  if (action === 'hire') {
+    showPopup(`
+      <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Confirm Hire</h2>
+      <p style="margin-bottom:2rem; font-size:1.1rem;">Are you sure you want to hire this person? This cannot be undone.</p>
+      <div style="display:flex; gap:1rem;">
+        <button onclick="confirmHire(${appId})" class="big" style="flex:1; background:#34c759;">Yes, Hire</button>
+        <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">No, Cancel</button>
+      </div>
+    `);
+  } else if (action === 'reject') {
+    showPopup(`
+      <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Reject Application</h2>
+      <p style="margin-bottom:1rem; font-size:1.1rem;">Please provide a reason for rejection:</p>
+      <textarea id="reject-reason-input" placeholder="Enter reason..." style="width:100%; padding:1rem; border-radius:12px; border:1px solid #d1d1d6; min-height:120px; margin-bottom:1.5rem; font-family:inherit;"></textarea>
+      <div style="display:flex; gap:1rem;">
+        <button onclick="confirmReject(${appId})" class="big" style="flex:1; background:#ff3b30;">Submit Rejection</button>
+        <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">Cancel</button>
+      </div>
+    `);
+  } else if (action === 'extratime') {
+    const appIndex = applications.findIndex(a => a.id === appId);
+    if (appIndex !== -1) {
+      applications[appIndex].status = 'Extra Time';
+      saveData();
+      hidePopup();
+      showNotification('Application status updated to Extra Time');
+      setTimeout(() => renderEmployerSubPage('candidatemanagement'), 500);
+    }
+  }
+}
+
+function confirmHire(appId) {
+  const appIndex = applications.findIndex(a => a.id === appId);
+  if (appIndex !== -1) {
+    const app = applications[appIndex];
+    app.status = 'Hired';
+    app.handler = currentUser.name;
+    processed.push(...applications.splice(appIndex, 1));
+    saveData();
+    
+    showSuccessScreen('Candidate Hired Successfully!');
+    playSuccessSound();
+    setTimeout(() => {
+      hidePopup();
+      renderEmployerSubPage('candidatemanagement');
+    }, 3000);
+  }
+}
+
+function confirmReject(appId) {
+  const reason = document.getElementById('reject-reason-input')?.value;
+  if (!reason || reason.trim() === '') {
+    showNotification('Please provide a reason for rejection');
+    return;
+  }
+  
+  const appIndex = applications.findIndex(a => a.id === appId);
+  if (appIndex !== -1) {
+    const app = applications[appIndex];
+    app.status = 'Rejected';
+    app.handler = currentUser.name;
+    app.reason = reason;
+    processed.push(...applications.splice(appIndex, 1));
+    saveData();
+    
+    const overlay = document.getElementById('popup-overlay');
+    overlay.innerHTML = `
+      <div class="success-screen">
+        <div class="tick" style="background:#ff3b30;">✗</div>
+        <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Application Rejected</h2>
+        <p style="font-size:1rem; color:#6e6e73;">The candidate has been notified.</p>
+      </div>
+    `;
+    
+    setTimeout(() => {
+      hidePopup();
+      renderEmployerSubPage('candidatemanagement');
+    }, 3000);
   }
 }
 
@@ -610,7 +1164,7 @@ function confirmDelete(id) {
       jobs = jobs.filter(j => j.id !== id);
       saveData();
       hidePopup();
-      renderEmployerSubPage('jobs');
+      renderEmployerSubPage('joblistings');
     }, 2000);
   }
 }
