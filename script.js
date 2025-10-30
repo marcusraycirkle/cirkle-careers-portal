@@ -523,9 +523,16 @@ function renderEmployerPage(page) {
       btn.addEventListener('click', function() {
         console.log('Clicked:', this.dataset.emp);
         const targetPage = this.dataset.emp;
-        window.location.hash = `employerportal/${targetPage}`;
-        // Force immediate re-render
+        
+        // Update active states immediately
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Render the subpage directly
         renderEmployerSubPage(targetPage);
+        
+        // Update hash without triggering hashchange
+        history.replaceState(null, '', `#employerportal/${targetPage}`);
       });
     });
     
