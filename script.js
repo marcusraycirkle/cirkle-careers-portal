@@ -522,7 +522,10 @@ function renderEmployerPage(page) {
     document.querySelectorAll('.menu-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         console.log('Clicked:', this.dataset.emp);
-        navigate(`employerportal/${this.dataset.emp}`);
+        const targetPage = this.dataset.emp;
+        window.location.hash = `employerportal/${targetPage}`;
+        // Force immediate re-render
+        renderEmployerSubPage(targetPage);
       });
     });
     
