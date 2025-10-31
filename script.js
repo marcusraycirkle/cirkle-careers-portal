@@ -437,7 +437,8 @@ function showJobPopup(job) {
     saveData();
     showPopup(`
       <h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">${job.title}</h2>
-      <p style="margin-bottom:1rem; line-height:1.6;">${job.description}</p>
+      <p style="margin-bottom:1rem; line-height:1.6; white-space:pre-wrap;">${job.description}</p>
+      ${job.requirements ? `<div style="margin-bottom:1rem;"><strong>Requirements:</strong><p style="line-height:1.6; white-space:pre-wrap; margin-top:0.5rem;">${job.requirements}</p></div>` : ''}
       <p style="font-weight:600; margin-bottom:1.5rem;">Payment: ${job.payment}</p>
       <button class="big" onclick="navigate('apply/${job.id}'); hidePopup();" style="width:100%;">Apply Now</button>
     `, false);
@@ -456,7 +457,8 @@ function renderApplicationPage(jobId) {
   let content = `
     <div style="max-width:800px; margin:0 auto;">
       <h1 style="font-size:2.5rem; font-weight:700; margin-bottom:1rem;">${job.title}</h1>
-      <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6;">${job.description}</p>
+      <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6; white-space:pre-wrap;">${job.description}</p>
+      ${job.requirements ? `<div style="margin-bottom:2rem;"><strong style="font-size:1.2rem;">Requirements:</strong><p style="font-size:1rem; line-height:1.6; white-space:pre-wrap; margin-top:0.5rem;">${job.requirements}</p></div>` : ''}
       <p style="font-weight:600; margin-bottom:2rem;">Payment: ${job.payment}</p>
       <div style="background:#fff; padding:2rem; border-radius:20px; box-shadow:0 4px 16px rgba(0,0,0,0.08);">`;
   
@@ -963,6 +965,8 @@ function createJob() {
     <input type="text" id="job-title" placeholder="e.g. Finance Manager" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem;">
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Job Description</label>
     <textarea id="job-desc" placeholder="Describe the role..." style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; height:150px; margin-bottom:1.5rem;"></textarea>
+    <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Requirements *</label>
+    <textarea id="job-requirements" placeholder="List the job requirements (line breaks supported)..." style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; height:150px; margin-bottom:1.5rem;"></textarea>
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Payment Type</label>
     <select id="payment-type" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;">
       <option value="biweekly">Biweekly</option>
@@ -1067,11 +1071,14 @@ function addQuestion() {
 function submitJob() {
   const paymentType = document.getElementById('payment-type')?.value;
   const paymentDetail = document.getElementById('payment-detail')?.value || '';
-  if (paymentType && document.getElementById('job-title')?.value && document.getElementById('job-desc')?.value) {
+  const requirements = document.getElementById('job-requirements')?.value;
+  
+  if (paymentType && document.getElementById('job-title')?.value && document.getElementById('job-desc')?.value && requirements) {
     const newJob = {
       id: Date.now(),
       title: document.getElementById('job-title').value,
       description: document.getElementById('job-desc').value,
+      requirements: requirements,
       payment: paymentDetail ? `${paymentType.charAt(0).toUpperCase() + paymentType.slice(1)}: ${paymentDetail}` : `${paymentType.charAt(0).toUpperCase() + paymentType.slice(1)}`,
       active: document.querySelector('[name="status"]:checked')?.value === 'open',
       createdBy: currentUser.name,
@@ -1145,8 +1152,15 @@ function viewJobDetails(id) {
       
       <div class="box" style="margin-bottom:1.5rem;">
         <h3>Description</h3>
-        <p style="line-height:1.6; color:#000;">${job.description}</p>
+        <p style="line-height:1.6; color:#000; white-space:pre-wrap;">${job.description}</p>
       </div>
+      
+      ${job.requirements ? `
+      <div class="box" style="margin-bottom:1.5rem;">
+        <h3>Requirements</h3>
+        <p style="line-height:1.6; color:#000; white-space:pre-wrap;">${job.requirements}</p>
+      </div>
+      ` : ''}
       
       <div class="box" style="margin-bottom:1.5rem;">
         <h3>Payment Information</h3>
