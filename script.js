@@ -18,11 +18,10 @@ const COMPANY_LOGOS = {
 };
 const DISCORD_WEBHOOK = ''; // Add your Discord webhook URL here if you want notifications
 
+// Data will be loaded from Firebase - see firebase-helpers.js
+// let currentUser, jobs, applications, processed, chats are defined in firebase-helpers.js
 let currentUser = null;
-let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
-let applications = JSON.parse(localStorage.getItem('applications')) || [];
-let processed = JSON.parse(localStorage.getItem('processed')) || [];
-let chats = JSON.parse(localStorage.getItem('chats')) || {};
+
 const faqs = [
   { q: 'What is Cirkle Development Group?', a: 'The Cirkle Development Group (Cirkle Dev Group) is the parent organization established to own, manage, and provide strategic direction for all descendant companies under its corporate umbrella, including the original Cirkle Development. We are structured as a holding group dedicated to maximizing the efficiency and growth of our portfolio businesses. Our existence ensures that each subsidiary can focus entirely on its core mission and operations while benefiting from the financial stability, centralized resources, and clear legal framework provided by the Group. We are building a coherent, synergistic network where stability and strategic oversight drive collective success. You can view more by visiting https://group.cirkledevelopment.co.uk/' },
   { q: 'How do I apply?', a: 'To apply for a job, go to the "vacancies" tab, select the company you wish to apply to and view the list of available applications. Click on your selected application and fill out the details! You will be presented with a 12 digit PIN- keep this safe as it can be used to track your application status. Once your application has been approved, you will be marked as "Hired", sent a welcome email from "careers@cirkledevelopment.co.uk" and will be DMed from your assigned employer. It is as easy as that!' },
@@ -31,12 +30,7 @@ const faqs = [
 ];
 
 // Utility Functions
-function saveData() {
-  localStorage.setItem('jobs', JSON.stringify(jobs));
-  localStorage.setItem('applications', JSON.stringify(applications));
-  localStorage.setItem('processed', JSON.stringify(processed));
-  localStorage.setItem('chats', JSON.stringify(chats));
-}
+// saveData() is now handled by Firebase - see firebase-helpers.js
 
 function generatePin() {
   return Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0');
@@ -556,9 +550,9 @@ async function submitApplication(jobId) {
       });
       
       job.submissions++;
-      applications.push(app);
-      chats[app.id] = [];
-      saveData();
+      saveJob(job); // Firebase - update job
+      saveApplication(app); // Firebase - save new application
+      saveChat(app.id, []); // Firebase - initialize empty chat
       
       // Send to Discord webhook (optional - add your webhook URL)
       const WEBHOOK_URL = 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA'; // Add your Discord webhook URL here
@@ -1104,8 +1098,7 @@ function submitJob() {
         newJob.questions.push(q);
       }
     }
-    jobs.push(newJob);
-    saveData();
+    saveJob(newJob); // Firebase
     playSuccessSound();
     showNotification(`Successfully created new listing: ${newJob.title}`);
     if (newJob.assigned.includes(currentUser.name)) showNotification(`You have been assigned to listing: ${newJob.title}`);
@@ -1121,7 +1114,7 @@ function toggleJob(id) {
   if (job) {
     job.active = !job.active;
     if (job.active) job.lastOpen = new Date().toISOString();
-    saveData();
+    saveJob(job); // Firebase
     playSuccessSound();
     showNotification(`Successfully updated status: ${job.active ? 'Open' : 'Closed'}`);
     renderEmployerSubPage('joblistings');
@@ -1293,7 +1286,7 @@ function sendChatMessage(appId) {
   if (msg && currentUser) {
     if (!chats[appId]) chats[appId] = [];
     chats[appId].push({ user: currentUser.name, msg });
-    saveData();
+    saveChat(appId, chats[appId]); // Firebase
     
     const chatMsgs = document.getElementById('chat-msgs');
     if (chatMsgs) {
@@ -1334,7 +1327,7 @@ function processFeedback(appId, action) {
     const appIndex = applications.findIndex(a => a.id === appId);
     if (appIndex !== -1) {
       applications[appIndex].status = 'Extra Time';
-      saveData();
+      saveApplication(applications[appIndex]); // Firebase
       hidePopup();
       showNotification('Application status updated to Extra Time');
       setTimeout(() => renderEmployerSubPage('candidatemanagement'), 500);
@@ -1348,8 +1341,10 @@ function confirmHire(appId) {
     const app = applications[appIndex];
     app.status = 'Hired';
     app.handler = currentUser.name;
-    processed.push(...applications.splice(appIndex, 1));
-    saveData();
+    
+    // Firebase: Delete from applications, add to processed
+    deleteApplication(app.pin);
+    saveProcessed(app);
     
     playSuccessSound();
     const overlay = document.getElementById('popup-overlay');
@@ -1377,8 +1372,10 @@ function confirmReject(appId) {
     app.status = 'Rejected';
     app.handler = currentUser.name;
     app.reason = reason;
-    processed.push(...applications.splice(appIndex, 1));
-    saveData();
+    
+    // Firebase: Delete from applications, add to processed
+    deleteApplication(app.pin);
+    saveProcessed(app);
     
     const overlay = document.getElementById('popup-overlay');
     overlay.innerHTML = `
@@ -1397,15 +1394,15 @@ function deleteJob(id) {
 }
 
 function confirmDelete(id) {
+  deleteJob(id); // Firebase
+  hidePopup();
   const popup = document.getElementById('popup');
   if (popup) {
     popup.innerHTML = '<p style="text-align:center; font-size:1.2rem;">Deleting...</p>';
     setTimeout(() => {
-      jobs = jobs.filter(j => j.id !== id);
-      saveData();
       hidePopup();
       renderEmployerSubPage('joblistings');
-    }, 2000);
+    }, 1000);
   }
 }
 
@@ -1495,7 +1492,7 @@ function sendChat(appId) {
   if (msg && currentUser) {
     if (!chats[appId]) chats[appId] = [];
     chats[appId].push({ user: currentUser.name, msg });
-    saveData();
+    saveChat(appId, chats[appId]); // Firebase
     document.getElementById('chat-msgs').innerHTML += `<p style="margin-bottom:0.5rem;"><strong>${currentUser.name}:</strong> ${msg}</p>`;
     document.getElementById('chat-input').value = '';
   }
@@ -1510,13 +1507,13 @@ function processApp(id) {
     app.handler = currentUser.name;
     if (status === 'rejected') app.reason = document.getElementById('reject-reason')?.value || 'Not provided';
     if (status === 'hired' || status === 'rejected') {
-      processed.push(...applications.splice(appIndex, 1));
-      saveData();
+      deleteApplication(app.pin); // Firebase
+      saveProcessed(app); // Firebase
       hidePopup();
       showNotification(`Application ${status} successfully.`);
       setTimeout(() => renderEmployerSubPage('candidates'), 3000);
     } else {
-      saveData();
+      saveApplication(app); // Firebase
       showNotification('Application status updated to Pending.');
     }
   }
@@ -1545,13 +1542,13 @@ function resetAllData() {
     overlay.classList.remove('hidden');
     
     setTimeout(() => {
-      // Clear all data from localStorage
-      localStorage.removeItem('jobs');
-      localStorage.removeItem('applications');
-      localStorage.removeItem('processed');
-      localStorage.removeItem('chats');
+      // Clear all data from Firebase
+      jobsRef.remove();
+      applicationsRef.remove();
+      processedRef.remove();
+      chatsRef.remove();
       
-      // Reset in-memory data
+      // Reset in-memory data (will be cleared by Firebase listeners)
       jobs = [];
       applications = [];
       processed = [];
