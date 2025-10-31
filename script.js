@@ -989,7 +989,7 @@ function createJob() {
     <button onclick="addQuestion()" style="background:none; color:#007aff; border:none; cursor:pointer; font-weight:500; margin-bottom:1.5rem;">+ Add Extra Question</button>
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Assign Director(s)</label>
     <select id="assigned" multiple style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem;">
-      <option>Sam</option><option>Marcus</option><option>Teejay</option>
+      <option>Sam</option><option>Marcus</option><option>Teejay</option><option>Magic</option><option>Chase Johnson</option><option>Carter</option>
     </select>
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Status</label>
     <div style="margin-bottom:1.5rem;">
