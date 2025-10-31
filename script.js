@@ -1779,27 +1779,58 @@ function deleteProcessedApplication(appId) {
   `);
 }
 
-function confirmDeleteProcessedApplication(appId) {
+async function confirmDeleteProcessedApplication(appId) {
   showLoading();
-  setTimeout(() => {
-    processed = processed.filter(p => p.id !== appId);
-    saveData();
-    playSuccessSound();
+  
+  try {
+    // Find the processed application
+    const app = processed.find(p => p.id === appId);
     
-    const overlay = document.getElementById('popup-overlay');
-    overlay.innerHTML = `
-      <div class="success-screen">
-        <div class="tick">✓</div>
-        <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Application Deleted</h2>
-        <p style="font-size:1rem; color:#6e6e73;">The application has been permanently removed.</p>
-      </div>
-    `;
-    
-    setTimeout(() => {
-      hidePopup();
-      renderEmployerSubPage('candidatemanagement');
-    }, 2000);
-  }, 1500);
+    if (app) {
+      // Delete from backend using firebaseKey or by searching
+      if (app.firebaseKey) {
+        await fetch(`${BACKEND_URL}/api/processed/${app.firebaseKey}`, {
+          method: 'DELETE'
+        });
+      } else {
+        // Fallback: fetch all processed and find by ID
+        const resp = await fetch(`${BACKEND_URL}/api/processed`);
+        const data = await resp.json();
+        if (data) {
+          for (const key of Object.keys(data)) {
+            if (data[key] && data[key].id === appId) {
+              await fetch(`${BACKEND_URL}/api/processed/${key}`, {
+                method: 'DELETE'
+              });
+              break;
+            }
+          }
+        }
+      }
+      
+      // Reload processed applications from backend
+      await loadProcessed();
+      
+      playSuccessSound();
+      const overlay = document.getElementById('popup-overlay');
+      overlay.innerHTML = `
+        <div class="success-screen">
+          <div class="tick">✓</div>
+          <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Application Deleted</h2>
+          <p style="font-size:1rem; color:#6e6e73;">The application has been permanently removed.</p>
+        </div>
+      `;
+      
+      setTimeout(() => {
+        hidePopup();
+        renderEmployerSubPage('candidatemanagement');
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Error deleting processed application:', error);
+    hidePopup();
+    showNotification('Failed to delete application. Please try again.');
+  }
 }
 
 function viewJob(id) {
