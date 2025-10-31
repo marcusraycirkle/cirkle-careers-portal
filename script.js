@@ -661,8 +661,24 @@ async function submitApplication(jobId) {
         })();
       }
       
-      // Send to Discord webhook (optional - add your webhook URL)
-      const WEBHOOK_URL = 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA'; // Add your Discord webhook URL here
+      // Send to Discord webhook - route to different channels based on company
+      const COMPANY_WEBHOOKS = {
+        'Cirkle Development': 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA',
+        'Cirkle Group Careers': 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA',
+        'Aer Lingus': 'https://discord.com/api/webhooks/1433867955770495120/--i3Y4XsgLOu2Ppoe5WuFRm2dIZgVCwPhSw9oKqBI6tmRxO3I8mVq-jrsGlQCnz8VmbS',
+        'DevDen': 'https://discord.com/api/webhooks/1433868342480863242/l1C_3xl08wQoXGkxXOnh7xXutAQwhkdaJOK7srlwMDPdoawsy94u85Gh6Kzt2Cz3FvRg'
+      };
+      
+      const COMPANY_ROLE_PINGS = {
+        'Cirkle Development': '<@&1315065603178102794>',
+        'Cirkle Group Careers': '<@&1315065603178102794>',
+        'Aer Lingus': '<@&1396248348595323163>',
+        'DevDen': '<@&1144662197335769089>'
+      };
+      
+      const WEBHOOK_URL = COMPANY_WEBHOOKS[job.company] || COMPANY_WEBHOOKS['Cirkle Development']; // Default to Cirkle Development
+      const ROLE_PING = COMPANY_ROLE_PINGS[job.company] || COMPANY_ROLE_PINGS['Cirkle Development'];
+      
       if (WEBHOOK_URL) {
         try {
           const embed = {
@@ -699,7 +715,10 @@ async function submitApplication(jobId) {
           await fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ embeds: [embed] })
+            body: JSON.stringify({ 
+              content: ROLE_PING,
+              embeds: [embed] 
+            })
           });
         } catch (e) {
           console.log('Webhook failed:', e);
