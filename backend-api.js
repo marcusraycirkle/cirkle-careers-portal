@@ -1,6 +1,6 @@
 // Backend API Helper - Calls Cloudflare Worker instead of Firebase directly
 // Replace this URL with your actual Cloudflare Worker URL after deployment
-const BACKEND_URL = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev';
+const BACKEND_URL = 'cirkle-careers-api.marcusray.workers.dev';
 
 // Global data cache (synced with backend)
 let jobs = [];
