@@ -19,8 +19,95 @@ body {
 
 /* Dark Mode */
 body.dark-mode {
+  background: #000;
+  color: #fff;
+}
+
+body.dark-mode header {
   background: #1c1c1e;
-  color: #f2f2f7;
+  border-bottom: 1px solid #38383a;
+}
+
+body.dark-mode .logo h1 {
+  color: #5856d6;
+}
+
+body.dark-mode #nav button {
+  color: #fff;
+}
+
+body.dark-mode #nav button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+body.dark-mode .box,
+body.dark-mode .card,
+body.dark-mode .job-row,
+body.dark-mode .row,
+body.dark-mode .faq-row {
+  background: #1c1c1e;
+  border: 1px solid #38383a;
+}
+
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+  background: #2c2c2e;
+  border: 1px solid #38383a;
+  color: #fff;
+}
+
+body.dark-mode #popup {
+  background: #1c1c1e;
+  color: #fff;
+}
+
+body.dark-mode .dropdown {
+  background: #1c1c1e;
+  border: 1px solid #38383a;
+}
+
+body.dark-mode footer {
+  background: #1c1c1e;
+  border-top: 1px solid #38383a;
+  color: #8e8e93;
+}
+
+body.dark-mode .side-menu {
+  background: #1c1c1e;
+  border-right: 1px solid #38383a;
+}
+
+body.dark-mode .menu-btn {
+  color: #fff;
+}
+
+body.dark-mode .menu-btn:hover,
+body.dark-mode .menu-btn.active {
+  background: #2c2c2e;
+}
+
+body.dark-mode table {
+  background: #1c1c1e;
+}
+
+body.dark-mode table th {
+  background: #2c2c2e;
+  color: #fff;
+}
+
+body.dark-mode table td {
+  border-bottom: 1px solid #38383a;
+  color: #fff;
+}
+
+body.dark-mode .tab-btn {
+  background: #2c2c2e;
+  color: #fff;
+}
+
+body.dark-mode .tab-btn.active {
+  background: #007aff;
 }
 
 body.dark-mode #public-header,
