@@ -138,6 +138,21 @@ window.addEventListener('hashchange', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Check for existing session
+  const savedUser = sessionStorage.getItem('currentUser');
+  if (savedUser) {
+    try {
+      currentUser = JSON.parse(savedUser);
+      // If user was logged in, restore their session
+      if (currentUser && window.location.hash.includes('employerportal')) {
+        renderPage();
+        return;
+      }
+    } catch (e) {
+      sessionStorage.removeItem('currentUser');
+    }
+  }
+  
   // Dark mode toggle
   const themeToggle = document.getElementById('theme-toggle');
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -200,6 +215,8 @@ async function login() {
       
       if (result.success) {
         currentUser = result.user;
+        // Save session to sessionStorage
+        sessionStorage.setItem('currentUser', JSON.stringify(result.user));
         loading.textContent = 'Profile fetched!';
         setTimeout(() => navigate('employerportal/dashboard'), 1000);
       } else {
@@ -238,6 +255,8 @@ function logout() {
       setTimeout(() => {
         // Clear user and remove menu
         currentUser = null;
+        // Clear session storage
+        sessionStorage.removeItem('currentUser');
         const menu = document.querySelector('.side-menu');
         if (menu) menu.remove();
         
