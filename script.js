@@ -607,6 +607,60 @@ async function submitApplication(jobId) {
       saveApplication(app); // Firebase - save new application
       saveChat(app.id, []); // Firebase - initialize empty chat
       
+      // Send Discord DM confirmation to candidate
+      if (app.data.discord) {
+        (async () => {
+          try {
+            const companyLogo = COMPANY_LOGOS[job.company] || '';
+            
+            await fetch(`${BACKEND_URL}/api/discord/dm`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: app.data.discord,
+                message: {
+                  embeds: [{
+                    title: '✅ Application Received',
+                    description: `**RE: ${job.title}**`,
+                    color: 0x007AFF,
+                    thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                    fields: [
+                      {
+                        name: '\u200b',
+                        value: `Dear Candidate,\n\nThank you for submitting your application for the **${job.title}** position at **${job.company}**.\n\nYour application has been received and is currently under review. We will contact you via email at **${app.data.email || 'your registered email'}** once a decision has been made.\n\nPlease keep your Application PIN safe for future reference.`,
+                        inline: false
+                      },
+                      {
+                        name: '🏢 Company',
+                        value: job.company,
+                        inline: true
+                      },
+                      {
+                        name: '🔑 Application PIN',
+                        value: `\`${app.pin}\``,
+                        inline: true
+                      },
+                      {
+                        name: '📅 Submitted',
+                        value: new Date(app.appliedDate).toLocaleDateString(),
+                        inline: true
+                      }
+                    ],
+                    footer: {
+                      text: `allCareers • Cirkle Development Group`,
+                      icon_url: 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
+                    },
+                    timestamp: new Date().toISOString()
+                  }]
+                }
+              })
+            });
+          } catch (error) {
+            console.error('Error sending Discord DM:', error);
+          }
+        })();
+      }
+      
       // Send to Discord webhook (optional - add your webhook URL)
       const WEBHOOK_URL = 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA'; // Add your Discord webhook URL here
       if (WEBHOOK_URL) {
@@ -1391,8 +1445,60 @@ function processFeedback(appId, action) {
   } else if (action === 'extratime') {
     const appIndex = applications.findIndex(a => a.id === appId);
     if (appIndex !== -1) {
-      applications[appIndex].status = 'Extra Time';
-      saveApplication(applications[appIndex]); // Firebase
+      const app = applications[appIndex];
+      app.status = 'Extra Time';
+      
+      // Send Discord DM to candidate with professional embed
+      if (app.data.discord) {
+        (async () => {
+          try {
+            const job = jobs.find(j => j.title === app.job);
+            const companyLogo = job ? COMPANY_LOGOS[job.company] || '' : '';
+            
+            await fetch(`${BACKEND_URL}/api/discord/dm`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: app.data.discord,
+                message: {
+                  embeds: [{
+                    title: '⏳ Application Under Review',
+                    description: `**RE: ${app.job}**`,
+                    color: 0xFF9500,
+                    thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                    fields: [
+                      {
+                        name: '\u200b',
+                        value: `Dear Candidate,\n\nThank you for your patience. We wish to inform you that your application is currently under review and requires **additional processing time**.\n\nWe appreciate your understanding and will update you as soon as possible.`,
+                        inline: false
+                      },
+                      {
+                        name: '🏢 Company',
+                        value: `${job ? job.company : 'Cirkle Development Group'}`,
+                        inline: true
+                      },
+                      {
+                        name: '🔑 Application PIN',
+                        value: `\`${app.pin}\``,
+                        inline: true
+                      }
+                    ],
+                    footer: {
+                      text: `allCareers • Cirkle Development Group`,
+                      icon_url: 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
+                    },
+                    timestamp: new Date().toISOString()
+                  }]
+                }
+              })
+            });
+          } catch (error) {
+            console.error('Error sending Discord DM:', error);
+          }
+        })();
+      }
+      
+      saveApplication(app); // Firebase
       hidePopup();
       showNotification('Application status updated to Extra Time');
       setTimeout(() => renderEmployerSubPage('candidatemanagement'), 500);
@@ -1400,12 +1506,65 @@ function processFeedback(appId, action) {
   }
 }
 
-function confirmHire(appId) {
+async function confirmHire(appId) {
   const appIndex = applications.findIndex(a => a.id === appId);
   if (appIndex !== -1) {
     const app = applications[appIndex];
     app.status = 'Hired';
     app.handler = currentUser.name;
+    
+    // Send Discord DM to candidate with professional embed
+    if (app.data.discord) {
+      try {
+        const job = jobs.find(j => j.title === app.job);
+        const companyLogo = job ? COMPANY_LOGOS[job.company] || '' : '';
+        
+        await fetch(`${BACKEND_URL}/api/discord/dm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: app.data.discord,
+            message: {
+              embeds: [{
+                title: '🎉 Application Successful',
+                description: `**RE: ${app.job}**`,
+                color: 0x34C759,
+                thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                fields: [
+                  {
+                    name: '\u200b',
+                    value: `Dear Candidate,\n\nWe wish to inform you that you have been **successful** in your application and your candidate status has been marked as **"Hired"**.\n\nYou will be sent a welcome email shortly to **${app.data.email || 'your registered email'}**. Please contact your employer for more details.`,
+                    inline: false
+                  },
+                  {
+                    name: '👤 Employer',
+                    value: `**${currentUser.name}**\n*${currentUser.role}*`,
+                    inline: true
+                  },
+                  {
+                    name: '🏢 Company',
+                    value: `${job ? job.company : 'Cirkle Development Group'}`,
+                    inline: true
+                  },
+                  {
+                    name: '🔑 Application PIN',
+                    value: `\`${app.pin}\``,
+                    inline: true
+                  }
+                ],
+                footer: {
+                  text: `allCareers • Cirkle Development Group`,
+                  icon_url: 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
+                },
+                timestamp: new Date().toISOString()
+              }]
+            }
+          })
+        });
+      } catch (error) {
+        console.error('Error sending Discord DM:', error);
+      }
+    }
     
     // Firebase: Delete from applications, add to processed
     deleteApplication(app.pin);
@@ -1417,14 +1576,14 @@ function confirmHire(appId) {
       <div class="success-screen">
         <div class="tick">✓</div>
         <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Candidate Hired Successfully!</h2>
-        <p style="font-size:1rem; color:#6e6e73; margin-bottom:2rem;">The candidate has been moved to the Hired tab.</p>
+        <p style="font-size:1rem; color:#6e6e73; margin-bottom:2rem;">The candidate has been moved to the Hired tab${app.data.discord ? ' and notified via Discord DM' : ''}.</p>
         <button class="big" onclick="hidePopup(); renderEmployerSubPage('candidatemanagement');" style="padding:1rem 2rem;">Close</button>
       </div>
     `;
   }
 }
 
-function confirmReject(appId) {
+async function confirmReject(appId) {
   const reason = document.getElementById('reject-reason-input')?.value;
   if (!reason || reason.trim() === '') {
     showNotification('Please provide a reason for rejection');
@@ -1438,6 +1597,64 @@ function confirmReject(appId) {
     app.handler = currentUser.name;
     app.reason = reason;
     
+    // Send Discord DM to candidate with professional embed
+    if (app.data.discord) {
+      try {
+        const job = jobs.find(j => j.title === app.job);
+        const companyLogo = job ? COMPANY_LOGOS[job.company] || '' : '';
+        
+        await fetch(`${BACKEND_URL}/api/discord/dm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: app.data.discord,
+            message: {
+              embeds: [{
+                title: '📋 Application Status Update',
+                description: `**RE: ${app.job}** • ${job ? job.company : 'Cirkle Development Group'}`,
+                color: 0xFF3B30,
+                thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                fields: [
+                  {
+                    name: '� Status Update',
+                    value: 'Dear Candidate,\n\nThank you for your interest in the above-mentioned position and for taking the time to submit your application.\n\nAfter careful consideration, we regret to inform you that we will not be proceeding with your application at this time.',
+                    inline: false
+                  },
+                  {
+                    name: '💬 Feedback',
+                    value: reason,
+                    inline: false
+                  },
+                  {
+                    name: '👤 Reviewed By',
+                    value: `**${currentUser.name}**\n${currentUser.role}`,
+                    inline: true
+                  },
+                  {
+                    name: '🔑 Application PIN',
+                    value: `\`${app.pin}\``,
+                    inline: true
+                  },
+                  {
+                    name: '🌟 Future Opportunities',
+                    value: 'We encourage you to keep an eye on our careers portal for future positions that may align with your skills and experience. We wish you the best of luck in your job search.',
+                    inline: false
+                  }
+                ],
+                footer: {
+                  text: `allCareers • Cirkle Development Group`,
+                  icon_url: 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
+                },
+                timestamp: new Date().toISOString()
+              }]
+            }
+          })
+        });
+      } catch (error) {
+        console.error('Error sending Discord DM:', error);
+      }
+    }
+    
     // Firebase: Delete from applications, add to processed
     deleteApplication(app.pin);
     saveProcessed(app);
@@ -1447,7 +1664,7 @@ function confirmReject(appId) {
       <div class="success-screen">
         <div class="tick" style="background:#ff3b30;">✗</div>
         <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Application Rejected</h2>
-        <p style="font-size:1rem; color:#6e6e73; margin-bottom:2rem;">The candidate has been notified and moved to the Rejected tab.</p>
+        <p style="font-size:1rem; color:#6e6e73; margin-bottom:2rem;">The candidate has been notified${app.data.discord ? ' via Discord DM' : ''} and moved to the Rejected tab.</p>
         <button class="big" onclick="hidePopup(); renderEmployerSubPage('candidatemanagement');" style="padding:1rem 2rem; background:#ff3b30;">Close</button>
       </div>
     `;
