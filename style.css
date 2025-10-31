@@ -899,6 +899,36 @@ button.big:hover {
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   max-width: 500px;
+  margin: 0 auto;
+}
+
+.tick {
+  width: 100px;
+  height: 100px;
+  background: #34c759;
+  color: #fff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  animation: tickPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes tickPop {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1156,6 +1186,10 @@ button.big:hover {
   z-index: 20;
   animation: fadeIn 0.3s;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
 }
 
 #popup {
