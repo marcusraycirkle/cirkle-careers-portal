@@ -1,0 +1,4 @@
+name = "cirkle-careers-api"
+main = "cloudflare-worker.js"
+compatibility_date = "2025-10-31"
+account_id = "294c2044f92fead9ebb19d549b574834"
