@@ -1,7 +1,8 @@
 // Bot Status Updater - Keeps the allCareers bot online with rotating status
-// This script needs to run continuously (e.g., on a server or your local machine)
+// This script needs to run continuously (e.g., on a server or Railway)
 
-const DISCORD_BOT_TOKEN = 'YOUR_DISCORD_BOT_TOKEN_HERE';
+// Get token from environment variable (set in Railway) or fallback to placeholder
+const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_DISCORD_BOT_TOKEN_HERE';
 
 const statuses = [
   { name: '🧐 Reading Applications', type: 3 }, // Type 3 = Watching
