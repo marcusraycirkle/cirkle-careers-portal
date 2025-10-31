@@ -4,7 +4,7 @@
 // No more hardcoded credentials visible in browser!
 const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
 const COMPANY_LOGOS = {
-  'Cirkle Development': 'https://media.discordapp.net/attachments/1315278404009988107/1315278406300209222/Utilities_-_3.png?ex=69049cf8&is=69034b78&hm=ce6329199383544d49ce52979847ebc540a956a41a7c54bb57ad3d5c7d570465&=&format=webp&quality=lossless',
+  'Cirkle Development': 'https://media.discordapp.net/attachments/1419317839269073016/1433841576924287056/Untitled_design.png?ex=69062887&is=6904d707&hm=c270528597cc86f267c27fef611f68ddd636d0636893d2451e996c979c7a9a7c&=&format=webp&quality=lossless',
   'Aer Lingus': 'https://media.discordapp.net/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg?ex=6904ebfc&is=69039a7c&hm=90fbca7874d5267dbbb82446f85aa58bdb8a3e6184e56fbd0d8383643b7a9be2&=&format=webp',
   'DevDen': 'https://media.discordapp.net/attachments/1315278404009988107/1426979098328174634/image.png?ex=6904ec59&is=69039ad9&hm=7099577485c5d023c79be9078f97d46618acb741231ec90540b88b8305526f71&=&format=webp&quality=lossless',
   'Cirkle Group Careers': 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg?ex=6904ebfc&is=69039a7c&hm=97a11f1d64abb2febeb26a5af51cdd7d4d7f074ffe353bce1efd4f6ba4db08da&=&format=webp'
