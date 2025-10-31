@@ -1436,17 +1436,28 @@ function confirmReject(appId) {
 }
 
 function deleteJob(id) {
-  showPopup(`Are you sure you want to delete this position? <button class="big" onclick="confirmDelete(${id})" style="margin-right:1rem;">Yes</button><button class="big" onclick="hidePopup()" style="background:#ff3b30;">No</button>`);
+  showPopup(`Are you sure you want to delete this position? <button class="big" onclick="confirmDeleteJob(${id})" style="margin-right:1rem;">Yes</button><button class="big" onclick="hidePopup()" style="background:#ff3b30;">No</button>`);
 }
 
-function confirmDelete(id) {
-  deleteJob(id); // Firebase
+async function confirmDeleteJob(id) {
   hidePopup();
   const popup = document.getElementById('popup');
   if (popup) {
-    popup.innerHTML = '<p style="text-align:center; font-size:1.2rem;">Deleting...</p>';
+    showPopup('<p style="text-align:center; font-size:1.2rem;">Deleting...</p>');
+    
+    // Actually delete the job from backend
+    const job = jobs.find(j => j.id === id);
+    if (job && job.firebaseKey) {
+      await fetch(`${BACKEND_URL}/api/jobs/${job.firebaseKey}`, {
+        method: 'DELETE'
+      });
+      await loadJobs(); // Refresh jobs from backend
+    }
+    
     setTimeout(() => {
       hidePopup();
+      playSuccessSound();
+      showNotification('Job listing deleted successfully');
       renderEmployerSubPage('joblistings');
     }, 1000);
   }
