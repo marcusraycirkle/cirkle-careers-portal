@@ -627,7 +627,7 @@ async function submitApplication(jobId) {
                     fields: [
                       {
                         name: '\u200b',
-                        value: `Dear Candidate,\n\nThank you for submitting your application for the **${job.title}** position at **${job.company}**.\n\nYour application has been received and is currently under review. We will contact you via email at **${app.data.email || 'your registered email'}** once a decision has been made.\n\nPlease keep your Application PIN safe for future reference.`,
+                        value: `Dear Candidate,\n\nThank you for submitting your application for the **${job.title}** position at **${job.company}**.\n\nYour application has been received and is currently under review. Please keep an eye on this bot's DM for further updates. Your status is: **🔃 Processing** .\n\nPlease keep your Application PIN safe for future reference. \n\nKind Regards,\nallCareers Department`,
                         inline: false
                       },
                       {
@@ -1469,7 +1469,7 @@ function processFeedback(appId, action) {
                     fields: [
                       {
                         name: '\u200b',
-                        value: `Dear Candidate,\n\nThank you for your patience. We wish to inform you that your application is currently under review and requires **additional processing time**.\n\nWe appreciate your understanding and will update you as soon as possible.`,
+                        value: `Dear Candidate,\n\nThank you for your patience. We wish to inform you that your application is currently under review and requires **additional processing time**. Your new status is: **⌛ Extra Time**.\n\nWe appreciate your understanding and will update you as soon as possible.\n\nKind Regards,\nallCareers Department`,
                         inline: false
                       },
                       {
@@ -1533,7 +1533,7 @@ async function confirmHire(appId) {
                 fields: [
                   {
                     name: '\u200b',
-                    value: `Dear Candidate,\n\nWe wish to inform you that you have been **successful** in your application and your candidate status has been marked as **"Hired"**.\n\nYou will be sent a welcome email shortly to **${app.data.email || 'your registered email'}**. Please contact your employer for more details.`,
+                    value: `Dear Candidate,\n\nWe wish to inform you that you have been **successful** in your application and your candidate status has been marked as: **✅ Hired**.\n\nYou will be sent a welcome email shortly to **${app.data.email || 'your registered email'}**. Please contact your employer for more details. \n\nKind Regards,\nallCareers Department`,
                     inline: false
                   },
                   {
@@ -1617,7 +1617,7 @@ async function confirmReject(appId) {
                 fields: [
                   {
                     name: '� Status Update',
-                    value: 'Dear Candidate,\n\nThank you for your interest in the above-mentioned position and for taking the time to submit your application.\n\nAfter careful consideration, we regret to inform you that we will not be proceeding with your application at this time.',
+                    value: 'Dear Candidate,\n\nThank you for your interest in the above-mentioned position and for taking the time to submit your application.\n\nAfter careful consideration, we regret to inform you that we will not be proceeding with your application at this time. \n\n We apologise for the inconvenience and appreciate your understanding. Your new status is: **❌ Rejected** \n\n Kind Regards,\nallCareers Department',
                     inline: false
                   },
                   {
