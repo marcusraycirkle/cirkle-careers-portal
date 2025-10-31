@@ -510,7 +510,7 @@ function renderApplicationPage(jobId) {
   
   if (job.options.email) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Email Address *</label><input type="email" id="app-email" placeholder="Enter your email" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;"><br>';
   
-  if (job.options.discord) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Discord ID *</label><input type="text" id="app-discord" placeholder="Enter your Discord ID" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;"><br>';
+  if (job.options.discord) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Discord ID *</label><p style="font-size:0.9rem; color:#6e6e73; margin-bottom:0.8rem; line-height:1.5;">Please enter your Discord User ID. <strong>NOT YOUR USERNAME.</strong> This is a mandatory field. Please make sure there are no spaces either. This is to ensure you receive Discord DMs from allCareers Bot.</p><input type="text" id="app-discord" placeholder="Enter your Discord User ID (e.g., 1234567890123456789)" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;" required><br>';
   
   if (job.options.roblox) content += '<label style="display:block; font-weight:600; margin-bottom:0.5rem;">Roblox ID *</label><input type="text" id="app-roblox" placeholder="Enter your Roblox ID" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem; transition:border 0.3s;"><br>';
   
@@ -1077,7 +1077,7 @@ function createJob() {
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
       <label><input type="checkbox" id="opt-name"> Include Name</label>
       <label><input type="checkbox" id="opt-email"> Include Email</label>
-      <label><input type="checkbox" id="opt-discord"> Include Discord ID</label>
+      <label><input type="checkbox" id="opt-discord" checked disabled> Include Discord ID <span style="color:#ff3b30; font-weight:600;">(Required)</span></label>
       <label><input type="checkbox" id="opt-roblox"> Include Roblox ID</label>
       <label><input type="checkbox" id="opt-cv"> Include CV Upload</label>
       <label><input type="checkbox" id="opt-experience"> Include Past Experience</label>
