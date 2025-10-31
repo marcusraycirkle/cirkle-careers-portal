@@ -1192,6 +1192,48 @@ button.big:hover {
   padding: 2rem;
 }
 
+/* Stronger dark-mode overrides to cover inline styles (use sparingly with !important) */
+body.dark-mode .row,
+body.dark-mode .box,
+body.dark-mode .card,
+body.dark-mode .job-row,
+body.dark-mode .job-view,
+body.dark-mode .app-details,
+body.dark-mode .app-chat,
+body.dark-mode #popup,
+body.dark-mode .success-screen,
+body.dark-mode .dropdown,
+body.dark-mode .tab-buttons button,
+body.dark-mode .tab-btn,
+body.dark-mode .background-images,
+body.dark-mode .card-grid,
+body.dark-mode .job-view .questions-content,
+body.dark-mode .job-view .questions-toggle {
+  background-color: #1c1c1e !important;
+  color: #f2f2f7 !important;
+  border-color: #2c2c2e !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode button.big {
+  background: #0a84ff !important;
+  color: #fff !important;
+}
+
+body.dark-mode #popup {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+}
+
+body.dark-mode .tick {
+  background: #34c759 !important;
+  color: #fff !important;
+}
+
+body.dark-mode #notification {
+  background: rgba(0,0,0,0.85) !important;
+  color: #fff !important;
+}
+
 #popup-overlay.hidden {
   display: none !important;
 }

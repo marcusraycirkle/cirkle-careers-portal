@@ -7,6 +7,7 @@ let jobs = [];
 let applications = [];
 let processed = [];
 let chats = {};
+let employers = []; // loaded from backend (discordId, name, role, pfp)
 let isBackendReady = false;
 
 // Initialize backend data
@@ -17,6 +18,7 @@ async function initBackend() {
     // Load all data
     await Promise.all([
       loadJobs(),
+      loadEmployers(),
       loadApplications(),
       loadProcessed(),
       loadChats()
@@ -33,6 +35,7 @@ async function initBackend() {
     // Poll for updates every 5 seconds
     setInterval(async () => {
       await loadJobs();
+      await loadEmployers();
       await loadApplications();
       await loadProcessed();
       await loadChats();
@@ -109,6 +112,18 @@ async function loadChats() {
   }
 }
 
+// Load employers (from worker USERS mapping)
+async function loadEmployers() {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/employers`);
+    const data = await response.json();
+    employers = data || [];
+    console.log('Employers loaded:', employers.length);
+  } catch (error) {
+    console.error('Error loading employers:', error);
+  }
+}
+
 // Save job to backend
 async function saveJob(job) {
   try {
@@ -159,13 +174,39 @@ async function saveApplication(app) {
 // Delete application from backend
 async function deleteApplication(pin) {
   try {
-    const app = applications.find(a => a.pin === pin);
-    if (app && app.firebaseKey) {
-      await fetch(`${BACKEND_URL}/api/applications/${app.firebaseKey}`, {
-        method: 'DELETE'
-      });
-      await loadApplications(); // Refresh applications
+    // Try to find the application locally first
+    let app = applications.find(a => a.pin === pin);
+
+    // If we didn't find it (or firebaseKey is missing), reload applications and try again
+    if (!app || !app.firebaseKey) {
+      await loadApplications();
+      app = applications.find(a => a.pin === pin);
     }
+
+    // If still not found, fetch raw data from backend and search keys to delete by key
+    if (!app || !app.firebaseKey) {
+      const resp = await fetch(`${BACKEND_URL}/api/applications`);
+      const data = await resp.json();
+      if (data) {
+        for (const key of Object.keys(data)) {
+          try {
+            if (data[key] && data[key].pin === pin) {
+              await fetch(`${BACKEND_URL}/api/applications/${key}`, { method: 'DELETE' });
+              await loadApplications();
+              return;
+            }
+          } catch (e) { /* continue searching */ }
+        }
+      }
+      // nothing to delete
+      return;
+    }
+
+    // Delete by firebaseKey
+    await fetch(`${BACKEND_URL}/api/applications/${app.firebaseKey}`, {
+      method: 'DELETE'
+    });
+    await loadApplications(); // Refresh applications
   } catch (error) {
     console.error('Error deleting application:', error);
   }

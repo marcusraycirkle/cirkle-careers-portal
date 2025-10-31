@@ -13,7 +13,6 @@ const COMPANY_LOGOS = {
 // Data will be loaded from backend - see backend-api.js
 // let currentUser, jobs, applications, processed, chats, employers are defined in backend-api.js
 let currentUser = null;
-let employers = []; // Loaded from backend
 
 const faqs = [
   { q: 'What is Cirkle Development Group?', a: 'The Cirkle Development Group (Cirkle Dev Group) is the parent organization established to own, manage, and provide strategic direction for all descendant companies under its corporate umbrella, including the original Cirkle Development. We are structured as a holding group dedicated to maximizing the efficiency and growth of our portfolio businesses. Our existence ensures that each subsidiary can focus entirely on its core mission and operations while benefiting from the financial stability, centralized resources, and clear legal framework provided by the Group. We are building a coherent, synergistic network where stability and strategic oversight drive collective success. You can view more by visiting https://group.cirkledevelopment.co.uk/' },
@@ -409,7 +408,7 @@ function renderVacancies() {
     `;
     
     COMPANIES.forEach(company => {
-      const count = jobs.filter(j => j.company === company && j.active).length;
+      const count = jobs.filter(j => (j.company || '').toString().trim() === company.toString().trim() && j.active).length;
       const logo = COMPANY_LOGOS[company] || `https://via.placeholder.com/80?text=${company[0]}`;
       
       main.innerHTML += `
@@ -434,7 +433,7 @@ function renderCompanyJobs(company) {
   const main = document.getElementById('main-content');
   if (main) {
     const logo = COMPANY_LOGOS[company] || `https://via.placeholder.com/120?text=${company[0]}`;
-    const list = jobs.filter(j => j.company === company && j.active);
+  const list = jobs.filter(j => (j.company || '').toString().trim() === company.toString().trim() && j.active);
     
     main.innerHTML = `
       <div style="text-align:center; margin-bottom:2rem;">
@@ -607,12 +606,51 @@ async function submitApplication(jobId) {
       saveJob(job); // Firebase - update job
       saveApplication(app); // Firebase - save new application
       saveChat(app.id, []); // Firebase - initialize empty chat
+
+      // Notify assigned employers via Discord DM (if we have employers mapping)
+      if (job.assigned && Array.isArray(job.assigned) && typeof fetch === 'function') {
+        (async () => {
+          for (const assignedName of job.assigned) {
+            try {
+              const employer = (employers || []).find(e => (e.name || '').toString().trim() === (assignedName || '').toString().trim());
+              if (employer && employer.id) {
+                await fetch(`${BACKEND_URL}/api/discord/dm`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userId: employer.id,
+                    message: {
+                      embeds: [{
+                        title: '🔔 New Assigned Application',
+                        description: 'An application that you have been assigned to has been submitted.',
+                        color: 0x007AFF,
+                        fields: [
+                          { name: 'Application', value: job.title, inline: true },
+                          { name: 'Submitted', value: new Date(app.appliedDate).toLocaleString(), inline: true },
+                          { name: '🔑 Candidate PIN', value: `\`${app.pin}\``, inline: true },
+                          { name: '\u200b', value: 'Log on to your employer dashboard to manage this application.', inline: false }
+                        ],
+                        timestamp: new Date().toISOString()
+                      }]
+                    }
+                  })
+                });
+              }
+            } catch (err) {
+              console.error('Failed to notify assigned employer:', assignedName, err);
+            }
+          }
+        })();
+      }
       
+      // Normalize company key (trim) to avoid whitespace mismatches
+      const companyKey = (job.company || '').toString().trim();
+
       // Send Discord DM confirmation to candidate
       if (app.data.discord) {
         (async () => {
           try {
-            const companyLogo = COMPANY_LOGOS[job.company] || '';
+            const companyLogo = COMPANY_LOGOS[companyKey] || '';
             
             await fetch(`${BACKEND_URL}/api/discord/dm`, {
               method: 'POST',
@@ -677,8 +715,8 @@ async function submitApplication(jobId) {
         'DevDen': '<@&1144662197335769089>'
       };
       
-      const WEBHOOK_URL = COMPANY_WEBHOOKS[job.company] || COMPANY_WEBHOOKS['Cirkle Development']; // Default to Cirkle Development
-      const ROLE_PING = COMPANY_ROLE_PINGS[job.company] || COMPANY_ROLE_PINGS['Cirkle Development'];
+  const WEBHOOK_URL = COMPANY_WEBHOOKS[companyKey] || COMPANY_WEBHOOKS['Cirkle Development']; // Default to Cirkle Development
+  const ROLE_PING = COMPANY_ROLE_PINGS[companyKey] || COMPANY_ROLE_PINGS['Cirkle Development'];
       
       if (WEBHOOK_URL) {
         try {
@@ -908,9 +946,9 @@ function renderEmployerSubPage(sub) {
             <p style="font-size:2.5rem; font-weight:700; color:#007aff; margin:1rem 0;">${applications.filter(a => jobs.find(j => j.id === a.jobId)?.assigned.includes(currentUser.name)).length}</p>
           </div>
           <div class="box">
-            <h3>Total Job Listings</h3>
-            <p style="font-size:2.5rem; font-weight:700; color:#34c759; margin:1rem 0;">${jobs.length}</p>
-          </div>
+              <h3>Total Job Listings</h3>
+              <p style="font-size:2.5rem; font-weight:700; color:#34c759; margin:1rem 0;">${jobs.filter(j => j.createdBy === currentUser.name).length}</p>
+            </div>
           <div class="box">
             <h3>Processed Applications</h3>
             <p style="font-size:2.5rem; font-weight:700; color:#ff3b30; margin:1rem 0;">${processed.filter(p => p.handler === currentUser.name).length}</p>
@@ -1118,7 +1156,7 @@ function createJob() {
     <button onclick="addQuestion()" style="background:none; color:#007aff; border:none; cursor:pointer; font-weight:500; margin-bottom:1.5rem;">+ Add Extra Question</button>
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Assign Director(s)</label>
     <select id="assigned" multiple style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem;">
-      <option>Sam</option><option>Marcus</option><option>Teejay</option><option>Magic</option><option>Chase Johnson</option><option>Carter</option>
+      ${employers && employers.length > 0 ? employers.map(e => `<option>${e.name}</option>`).join('') : '<option>Sam</option><option>Marcus</option><option>Teejay</option><option>Magic</option><option>Chase Johnson</option><option>Carter</option>'}
     </select>
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Status</label>
     <div style="margin-bottom:1.5rem;">
@@ -1484,7 +1522,7 @@ function processFeedback(appId, action) {
         (async () => {
           try {
             const job = jobs.find(j => j.title === app.job);
-            const companyLogo = job ? COMPANY_LOGOS[job.company] || '' : '';
+            const companyLogo = job ? COMPANY_LOGOS[(job.company || '').toString().trim()] || '' : '';
             
             await fetch(`${BACKEND_URL}/api/discord/dm`, {
               method: 'POST',
@@ -1548,7 +1586,7 @@ async function confirmHire(appId) {
     if (app.data.discord) {
       try {
         const job = jobs.find(j => j.title === app.job);
-        const companyLogo = job ? COMPANY_LOGOS[job.company] || '' : '';
+        const companyLogo = job ? COMPANY_LOGOS[(job.company || '').toString().trim()] || '' : '';
         
         await fetch(`${BACKEND_URL}/api/discord/dm`, {
           method: 'POST',
@@ -1632,7 +1670,7 @@ async function confirmReject(appId) {
     if (app.data.discord) {
       try {
         const job = jobs.find(j => j.title === app.job);
-        const companyLogo = job ? COMPANY_LOGOS[job.company] || '' : '';
+        const companyLogo = job ? COMPANY_LOGOS[(job.company || '').toString().trim()] || '' : '';
         
         await fetch(`${BACKEND_URL}/api/discord/dm`, {
           method: 'POST',
