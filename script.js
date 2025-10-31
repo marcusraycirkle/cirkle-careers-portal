@@ -804,6 +804,17 @@ function renderInformation() {
     
     main.innerHTML += '</div>';
     
+    // Add banner after FAQs
+    main.innerHTML += `
+      <div style="max-width:900px; margin:3rem auto 0; text-align:center;">
+        <img src="https://media.discordapp.net/attachments/1419317839269073016/1433857051699712081/allcareersbanner.png?ex=690636f0&is=6904e570&hm=0002c93474b23a7a23fc7bd56d5cc0db5e319831f8e71ce5d92baa1dfc6557d7&=&format=webp&quality=lossless" 
+             alt="allCareers Banner" 
+             style="width:100%; max-width:800px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08); transition:transform 0.3s;" 
+             onmouseover="this.style.transform='scale(1.02)'" 
+             onmouseout="this.style.transform='scale(1)'">
+      </div>
+    `;
+    
     // Add event listeners
     setTimeout(() => {
       document.querySelectorAll('.faq-row').forEach(row => {
