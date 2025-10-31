@@ -138,10 +138,35 @@ window.addEventListener('hashchange', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Dark mode toggle
+  const themeToggle = document.getElementById('theme-toggle');
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+    if (themeToggle) themeToggle.textContent = '🌙';
+  }
+  
+  themeToggle?.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    themeToggle.textContent = isDark ? '🌙' : '☀️';
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    
+    // Add rotation animation
+    themeToggle.style.transform = 'rotate(360deg)';
+    setTimeout(() => {
+      themeToggle.style.transform = 'rotate(0deg)';
+    }, 600);
+  });
+  
+  // Employer login dropdown
   document.getElementById('employer-login-btn')?.addEventListener('click', () => {
     document.getElementById('login-dropdown')?.classList.toggle('hidden');
   });
   document.getElementById('login-submit')?.addEventListener('click', login);
+  
+  // Navigation buttons
   document.querySelectorAll('[data-nav]')?.forEach(btn => {
     btn.addEventListener('click', () => {
       // If it's candidate-status, show popup instead of navigating
