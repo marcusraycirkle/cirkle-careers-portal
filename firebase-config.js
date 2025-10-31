@@ -3,13 +3,13 @@
 // Instructions: https://firebase.google.com/docs/web/setup
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
+  apiKey: "AIzaSyD00-6EWTN4RsskroJ8G0FOHZzbSIYTy4s",
+  authDomain: "cirkle-careers.firebaseapp.com",
+  databaseURL: "https://cirkle-careers-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "cirkle-careers",
+  storageBucket: "cirkle-careers.firebasestorage.app",
+  messagingSenderId: "738311922711",
+  appId: "1:738311922711:web:de3770ccb242f993556852"
 };
 
 // Initialize Firebase
