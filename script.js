@@ -577,6 +577,7 @@ async function submitApplication(jobId) {
     };
     const job = jobs.find(j => j.id === jobId);
     if (job) {
+      app.job = job.title; // Add job title to application
       if (job.options.name) app.data.name = document.getElementById('app-name')?.value || '';
       if (job.options.email) app.data.email = document.getElementById('app-email')?.value || '';
       if (job.options.discord) {

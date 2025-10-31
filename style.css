@@ -1192,6 +1192,10 @@ button.big:hover {
   padding: 2rem;
 }
 
+#popup-overlay.hidden {
+  display: none !important;
+}
+
 #popup {
   position: fixed;
   top: 50%;
