@@ -5,9 +5,9 @@
 const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
 const COMPANY_LOGOS = {
   'Cirkle Development': 'https://media.discordapp.net/attachments/1419317839269073016/1433841576924287056/Untitled_design.png?ex=69062887&is=6904d707&hm=c270528597cc86f267c27fef611f68ddd636d0636893d2451e996c979c7a9a7c&=&format=webp&quality=lossless',
-  'Aer Lingus': 'https://media.discordapp.net/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg?ex=6904ebfc&is=69039a7c&hm=90fbca7874d5267dbbb82446f85aa58bdb8a3e6184e56fbd0d8383643b7a9be2&=&format=webp',
-  'DevDen': 'https://media.discordapp.net/attachments/1315278404009988107/1426979098328174634/image.png?ex=6904ec59&is=69039ad9&hm=7099577485c5d023c79be9078f97d46618acb741231ec90540b88b8305526f71&=&format=webp&quality=lossless',
-  'Cirkle Group Careers': 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg?ex=6904ebfc&is=69039a7c&hm=97a11f1d64abb2febeb26a5af51cdd7d4d7f074ffe353bce1efd4f6ba4db08da&=&format=webp'
+  'Aer Lingus': 'https://media.discordapp.net/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg?ex=69063d7c&is=6904ebfc&hm=9730616105ee068db1d7239226f30f559bcc37c172c2a813559fbdd26ffebf15&=&format=webp',
+  'DevDen': 'https://media.discordapp.net/attachments/1315278404009988107/1426979098328174634/image.png?ex=69063dd9&is=6904ec59&hm=f89013f98d1fdabd1265caba53fa7ee2eb4b103296b4e217128c387b3b5a1673&=&format=webp&quality=lossless',
+  'Cirkle Group Careers': 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg?ex=69063d7c&is=6904ebfc&hm=4522f8f7de2a4af58ae65b1614c3e4b39b6c8537db00c0e15235761948f69199&=&format=webp'
 };
 
 // Data will be loaded from backend - see backend-api.js
@@ -137,6 +137,9 @@ window.addEventListener('hashchange', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Update header immediately on load to prevent flash
+  updateHeader();
+  
   // Check for existing session
   const savedUser = sessionStorage.getItem('currentUser');
   if (savedUser) {
@@ -144,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = JSON.parse(savedUser);
       // If user was logged in, restore their session
       if (currentUser && window.location.hash.includes('employerportal')) {
+        updateHeader(); // Update header again after user is loaded
         renderPage();
         return;
       }
@@ -403,7 +407,7 @@ function renderVacancies() {
     main.innerHTML = `
       <h2 style="font-size:2.5rem; font-weight:800; margin-bottom:1rem; text-align:center;">Available Vacancies</h2>
       <p style="text-align:center; font-size:1.1rem; color:#6e6e73; margin-bottom:2rem;">Explore opportunities across our family of companies</p>
-      <img src="https://media.discordapp.net/attachments/1404157487799861332/1432846309362237480/image.png?ex=69052c9d&is=6903db1d&hm=50cfebeb97b22a11d36140505c74cbc060d282ad95e0686026e9e48d15e71c52&=&format=webp&quality=lossless" alt="Vacancies Banner" style="border-radius:20px; margin-bottom:2.5rem; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+      <img src="https://media.discordapp.net/attachments/1404157487799861332/1432846309362237480/image.png?ex=69067e1d&is=69052c9d&hm=155818abb2eb51096b1ceb3da021688bc3d42705d405c3738209c7af3ae5330e&=&format=webp&quality=lossless" alt="Vacancies Banner" style="border-radius:20px; margin-bottom:2.5rem; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
       <div style="display:grid; gap:1.5rem;">
     `;
     
