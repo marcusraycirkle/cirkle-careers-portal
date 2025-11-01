@@ -618,10 +618,14 @@ async function submitApplication(jobId) {
         const sanitizedKey = q.title.replace(/[.$#\[\]\/:?*]/g, '_');
         
         if (q.type === 'short' || q.type === 'paragraph') {
-          app.data.answers[sanitizedKey] = document.getElementById(`q-${i}`)?.value || '';
+          const value = document.getElementById(`q-${i}`)?.value || '';
+          app.data.answers[sanitizedKey] = value;
+          console.log(`[APP DEBUG] Question ${i} (${sanitizedKey}): "${value}"`);
         } else if (q.type === 'multiple' || q.type === 'multi') {
           const selected = document.querySelectorAll(`input[name="q-${i}"]:checked`);
-          app.data.answers[sanitizedKey] = Array.from(selected).map(input => input.value).join(', ');
+          const value = Array.from(selected).map(input => input.value).join(', ');
+          app.data.answers[sanitizedKey] = value;
+          console.log(`[APP DEBUG] Question ${i} (${sanitizedKey}): "${value}"`);
         }
       });
       
@@ -630,10 +634,19 @@ async function submitApplication(jobId) {
       
       console.log(`[APP DEBUG] Saving application with PIN: ${app.pin}`);
       console.log(`[APP DEBUG] Application object:`, JSON.stringify(app, null, 2));
+      console.log(`[APP DEBUG] Answers object keys:`, Object.keys(app.data.answers));
+      console.log(`[APP DEBUG] Full application data being saved:`, app);
       
       try {
         const saveResult = await saveApplication(app); // Firebase - save new application (MUST AWAIT!)
         console.log(`[APP DEBUG] Application saved successfully, result:`, saveResult);
+        
+        // IMPORTANT: Check if Firebase returned an error even though the request succeeded
+        if (saveResult && saveResult.error) {
+          console.error(`[APP DEBUG] ❌ Firebase returned an error:`, saveResult.error);
+          throw new Error(`Firebase error: ${saveResult.error}`);
+        }
+        
         console.log(`[APP DEBUG] Initializing chat for app ID: ${app.id}...`);
         saveChat(app.id, []); // Firebase - initialize empty chat
         
