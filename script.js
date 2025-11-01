@@ -614,21 +614,15 @@ async function submitApplication(jobId) {
       
       app.data.answers = {};
       job.questions.forEach((q, i) => {
-        // Use question index as key to avoid Firebase invalid characters (. $ # [ ] / : ? *)
-        const questionKey = `question_${i}`;
-        const questionData = {
-          question: q.title,
-          answer: ''
-        };
+        // Sanitize question title by removing Firebase invalid characters (. $ # [ ] / : ? *)
+        const sanitizedKey = q.title.replace(/[.$#\[\]\/:?*]/g, '_');
         
         if (q.type === 'short' || q.type === 'paragraph') {
-          questionData.answer = document.getElementById(`q-${i}`)?.value || '';
+          app.data.answers[sanitizedKey] = document.getElementById(`q-${i}`)?.value || '';
         } else if (q.type === 'multiple' || q.type === 'multi') {
           const selected = document.querySelectorAll(`input[name="q-${i}"]:checked`);
-          questionData.answer = Array.from(selected).map(input => input.value).join(', ');
+          app.data.answers[sanitizedKey] = Array.from(selected).map(input => input.value).join(', ');
         }
-        
-        app.data.answers[questionKey] = questionData;
       });
       
       job.submissions++;
