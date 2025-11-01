@@ -887,7 +887,7 @@ function renderEmployerPage(page) {
       menu.classList.add('side-menu', 'open');
       menu.innerHTML = `
         <div class="pfp">
-          <img src="${currentUser.pfp}" alt="${currentUser.name}">
+          <img src="${currentUser.pfp}" alt="${currentUser.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=007aff&color=fff&size=80'">
           <h3 style="margin-top:0.75rem; font-size:1.1rem;">${currentUser.name}</h3>
           <p style="color:#6e6e73; font-size:0.9rem;">${currentUser.role}</p>
         </div>
@@ -1063,7 +1063,7 @@ function renderEmployerSubPage(sub) {
               html += `
                 <div class="card" onclick="viewApplicationDetails(${app.id})" style="text-align:left; padding:1.5rem;">
                   <div style="display:flex; gap:0.75rem; margin-bottom:1rem;">
-                    <img src="${app.data.discordPfp || 'https://via.placeholder.com/56'}" style="width:56px; height:56px; border-radius:50%; border:3px solid #007aff;">
+                    <img src="${app.data.discordPfp || 'https://via.placeholder.com/56'}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(app.data.name || 'User')}&background=007aff&color=fff&size=56'" style="width:56px; height:56px; border-radius:50%; border:3px solid #007aff;">
                   </div>
                   <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${app.data.name || 'Anonymous'}</h3>
                   <p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.25rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>
@@ -1397,7 +1397,7 @@ function viewApplicationDetails(id) {
         
         <div class="box" style="margin-bottom:1.5rem;">
           <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;">
-            <img src="${app.data.discordPfp || 'https://via.placeholder.com/80'}" style="width:80px; height:80px; border-radius:50%; border:3px solid #007aff;">
+            <img src="${app.data.discordPfp || 'https://via.placeholder.com/80'}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(app.data.name || 'User')}&background=007aff&color=fff&size=80'" style="width:80px; height:80px; border-radius:50%; border:3px solid #007aff;">
             <div>
               <h3 style="font-size:1.5rem; margin-bottom:0.25rem;">${app.data.name || 'Anonymous'}</h3>
               <p style="color:#6e6e73;">Applied: ${new Date(app.appliedDate).toLocaleString()}</p>
@@ -1866,8 +1866,8 @@ function viewApplication(id) {
     const job = jobs.find(j => j.id === app.jobId);
     let content = `<h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Application for ${job?.title || 'N/A'}</h2>`;
     content += '<div style="display:flex; align-items:center; margin-bottom:1.5rem;">' +
-      `<img src="${app.data.discordPfp || 'https://via.placeholder.com/56'}" style="border-radius:50%; margin-right:1rem; width:56px; height:56px;">` +
-      `<img src="${app.data.robloxAvatar || 'https://via.placeholder.com/56'}" style="border-radius:50%; width:56px; height:56px;">` +
+      `<img src="${app.data.discordPfp || 'https://via.placeholder.com/56'}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(app.data.name || 'User')}&background=007aff&color=fff&size=56'" style="border-radius:50%; margin-right:1rem; width:56px; height:56px;">` +
+      `<img src="${app.data.robloxAvatar || 'https://via.placeholder.com/56'}" onerror="this.src='https://via.placeholder.com/56?text=R'" style="border-radius:50%; width:56px; height:56px;">` +
       '</div>';
     content += `<p style="font-weight:500;">Name: ${app.data.name || 'N/A'}</p>`;
     if (app.data.email) content += `<p style="font-weight:500;">Email: ${app.data.email}</p>`;
