@@ -1423,6 +1423,41 @@ function submitJob() {
       }
     }
     saveJob(newJob); // Firebase
+    
+    // Send Discord DMs to assigned employers
+    if (newJob.assigned && newJob.assigned.length > 0) {
+      newJob.assigned.forEach(async (employerName) => {
+        const employer = employers.find(e => e.name === employerName);
+        if (employer && employer.discordId) {
+          try {
+            await fetch(`${BACKEND_URL}/api/discord/dm`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: employer.discordId,
+                embeds: [{
+                  title: '📋 New Job Listing Assignment',
+                  description: `You have been assigned to a new job listing!`,
+                  color: 0x007AFF,
+                  fields: [
+                    { name: '🏢 Company', value: newJob.company, inline: true },
+                    { name: '💼 Position', value: newJob.title, inline: true },
+                    { name: '👤 Created By', value: newJob.createdBy, inline: false },
+                    { name: '📝 Description', value: newJob.description.substring(0, 200) + (newJob.description.length > 200 ? '...' : ''), inline: false },
+                    { name: 'ℹ️', value: `If this assignment is a mistake, please contact **${newJob.createdBy}** immediately.`, inline: false }
+                  ],
+                  footer: { text: 'Cirkle Careers Portal' },
+                  timestamp: new Date().toISOString()
+                }]
+              })
+            });
+          } catch (error) {
+            console.error(`Error sending Discord DM to ${employerName}:`, error);
+          }
+        }
+      });
+    }
+    
     playSuccessSound();
     showNotification(`Successfully created new listing: ${newJob.title}`);
     if (newJob.assigned.includes(currentUser.name)) showNotification(`You have been assigned to listing: ${newJob.title}`);
@@ -1912,17 +1947,47 @@ async function confirmDeleteJob(id) {
 }
 
 function deleteProcessedApplication(appId) {
-  showPopup(`
-    <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">⚠️ Delete Application</h2>
-    <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6;">Are you sure you want to permanently delete this application? It can't be retrieved.</p>
-    <div style="display:flex; gap:1rem;">
-      <button onclick="confirmDeleteProcessedApplication(${appId})" class="big" style="flex:1; background:#ff3b30;">Yes, Delete</button>
-      <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">No, Cancel</button>
-    </div>
-  `);
+  const app = processed.find(p => p.id === appId);
+  const isAccepted = app && app.status === 'Hired';
+  
+  if (isAccepted) {
+    showPopup(`
+      <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">⚠️ Delete Accepted Application</h2>
+      <p style="font-size:1.1rem; margin-bottom:1.5rem; line-height:1.6;">This is an accepted application. Please choose how to proceed:</p>
+      <div style="margin-bottom:2rem;">
+        <label style="display:flex; align-items:center; gap:0.75rem; padding:1rem; background:#f2f2f7; border-radius:12px; cursor:pointer; margin-bottom:1rem;">
+          <input type="radio" name="delete-option" value="void" id="void-option" checked style="width:20px; height:20px;">
+          <div>
+            <div style="font-weight:600; margin-bottom:0.25rem;">🚫 Void this user</div>
+            <div style="font-size:0.9rem; color:#6e6e73;">Candidate will be notified via Discord DM that their application has been voided</div>
+          </div>
+        </label>
+        <label style="display:flex; align-items:center; gap:0.75rem; padding:1rem; background:#f2f2f7; border-radius:12px; cursor:pointer;">
+          <input type="radio" name="delete-option" value="silent" id="silent-option" style="width:20px; height:20px;">
+          <div>
+            <div style="font-weight:600; margin-bottom:0.25rem;">🗑️ Delete from database only</div>
+            <div style="font-size:0.9rem; color:#6e6e73;">Silently remove without notifying the candidate</div>
+          </div>
+        </label>
+      </div>
+      <div style="display:flex; gap:1rem;">
+        <button onclick="confirmDeleteProcessedApplication(${appId}, document.querySelector('[name=\\'delete-option\\']:checked')?.value === 'void')" class="big" style="flex:1; background:#ff3b30;">Confirm Delete</button>
+        <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">Cancel</button>
+      </div>
+    `);
+  } else {
+    showPopup(`
+      <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">⚠️ Delete Application</h2>
+      <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6;">Are you sure you want to permanently delete this application? It can't be retrieved.</p>
+      <div style="display:flex; gap:1rem;">
+        <button onclick="confirmDeleteProcessedApplication(${appId}, false)" class="big" style="flex:1; background:#ff3b30;">Yes, Delete</button>
+        <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">No, Cancel</button>
+      </div>
+    `);
+  }
 }
 
-async function confirmDeleteProcessedApplication(appId) {
+async function confirmDeleteProcessedApplication(appId, shouldVoidUser = false) {
   showLoading();
   
   try {
@@ -1930,7 +1995,34 @@ async function confirmDeleteProcessedApplication(appId) {
     const app = processed.find(p => p.id === appId);
     
     if (app) {
-      // Delete from backend using firebaseKey or by searching
+      // If voiding user and they have Discord ID, send DM
+      if (shouldVoidUser && app.data && app.data.discord) {
+        try {
+          const jobInfo = app.job ? `for **${app.job.title}** at **${app.job.company}**` : '';
+          await fetch(`${BACKEND_URL}/api/discord/dm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: app.data.discord,
+              embeds: [{
+                title: '❌ Application Voided',
+                description: `Your accepted application ${jobInfo} has been voided.`,
+                color: 0xFF3B30,
+                fields: [
+                  { name: '📋 Application Details', value: `**Name:** ${app.data.name || 'N/A'}\n**Status:** ${app.status}\n**Handler:** ${app.handler || 'N/A'}`, inline: false },
+                  { name: 'ℹ️ Next Steps', value: 'If you believe this is a mistake, please contact the hiring manager for more information.', inline: false }
+                ],
+                footer: { text: 'Cirkle Careers Portal' },
+                timestamp: new Date().toISOString()
+              }]
+            })
+          });
+        } catch (error) {
+          console.error('Error sending void notification DM:', error);
+        }
+      }
+      
+      // Delete from processed in backend using firebaseKey or by searching
       if (app.firebaseKey) {
         await fetch(`${BACKEND_URL}/api/processed/${app.firebaseKey}`, {
           method: 'DELETE'
@@ -1949,6 +2041,11 @@ async function confirmDeleteProcessedApplication(appId) {
             }
           }
         }
+      }
+      
+      // Also delete from regular applications if it exists there
+      if (app.pin) {
+        await deleteApplication(app.pin);
       }
       
       // Reload processed applications from backend
