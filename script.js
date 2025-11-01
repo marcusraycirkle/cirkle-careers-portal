@@ -964,6 +964,7 @@ function renderEmployerSubPage(sub) {
   
   switch (sub) {
     case 'dashboard':
+      const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
       subContent = `
         <h2 style="font-size:2rem; font-weight:700; margin-bottom:2rem;">Dashboard</h2>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
@@ -972,9 +973,12 @@ function renderEmployerSubPage(sub) {
             <p style="font-size:2.5rem; font-weight:700; color:#007aff; margin:1rem 0;">${applications.filter(a => {
               const job = jobs.find(j => j.id === a.jobId);
               if (!job || !job.assigned) return false;
-              return job.assigned.some(assignedName => 
-                (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
-              );
+              return job.assigned.some(assignedName => {
+                const trimmedAssigned = (assignedName || '').toString().trim();
+                const assignedFirstName = trimmedAssigned.split(' ')[0];
+                return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+                       assignedFirstName === currentUserFirstName;
+              });
             }).length}</p>
           </div>
           <div class="box">
@@ -996,12 +1000,16 @@ function renderEmployerSubPage(sub) {
       setTimeout(() => {
         const accepted = processed.filter(p => p.status === 'Hired' && p.handler === currentUser.name).length;
         const declined = processed.filter(p => p.status === 'Rejected' && p.handler === currentUser.name).length;
+        const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
         const pending = applications.filter(a => {
           const job = jobs.find(j => j.id === a.jobId);
           if (!job || !job.assigned) return false;
-          return job.assigned.some(assignedName => 
-            (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
-          );
+          return job.assigned.some(assignedName => {
+            const trimmedAssigned = (assignedName || '').toString().trim();
+            const assignedFirstName = trimmedAssigned.split(' ')[0];
+            return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+                   assignedFirstName === currentUserFirstName;
+          });
         }).length;
         
         new Chart(document.getElementById('activity-chart'), {
@@ -1070,21 +1078,29 @@ function renderEmployerSubPage(sub) {
       const tabs = ['processing', 'hired', 'rejected'];
       const currentTab = 'processing';
       
-      // Count applications assigned to current user
+      // Count applications assigned to current user (check both full name and first name)
       const userAppsCount = applications.filter(app => {
         const job = jobs.find(j => j.id === app.jobId);
         if (!job || !job.assigned) return false;
-        return job.assigned.some(assignedName => 
-          (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
-        );
+        const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
+        return job.assigned.some(assignedName => {
+          const trimmedAssigned = (assignedName || '').toString().trim();
+          const assignedFirstName = trimmedAssigned.split(' ')[0];
+          return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+                 assignedFirstName === currentUserFirstName;
+        });
       }).length;
       
       const userProcessed = processed.filter(p => {
         const job = jobs.find(j => j.id === p.jobId);
         if (!job || !job.assigned) return false;
-        return job.assigned.some(assignedName => 
-          (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
-        );
+        const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
+        return job.assigned.some(assignedName => {
+          const trimmedAssigned = (assignedName || '').toString().trim();
+          const assignedFirstName = trimmedAssigned.split(' ')[0];
+          return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+                 assignedFirstName === currentUserFirstName;
+        });
       });
       
       const hiredCount = userProcessed.filter(p => p.status === 'Hired').length;
@@ -1109,14 +1125,18 @@ function renderEmployerSubPage(sub) {
         let html = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem;">';
         
         if (tab === 'processing') {
-          // Filter applications assigned to current user
+          // Filter applications assigned to current user (check both full name and first name)
+          const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
           const userApplications = applications.filter(app => {
             const job = jobs.find(j => j.id === app.jobId);
             if (!job || !job.assigned) return false;
             // Check if current user is assigned to this job
-            return job.assigned.some(assignedName => 
-              (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
-            );
+            return job.assigned.some(assignedName => {
+              const trimmedAssigned = (assignedName || '').toString().trim();
+              const assignedFirstName = trimmedAssigned.split(' ')[0];
+              return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+                     assignedFirstName === currentUserFirstName;
+            });
           });
           
           if (userApplications.length === 0) {
@@ -1138,13 +1158,17 @@ function renderEmployerSubPage(sub) {
             });
           }
         } else if (tab === 'hired') {
-          // Filter processed apps assigned to current user
+          // Filter processed apps assigned to current user (check both full name and first name)
+          const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
           const userProcessed = processed.filter(p => {
             const job = jobs.find(j => j.id === p.jobId);
             if (!job || !job.assigned) return false;
-            return job.assigned.some(assignedName => 
-              (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
-            );
+            return job.assigned.some(assignedName => {
+              const trimmedAssigned = (assignedName || '').toString().trim();
+              const assignedFirstName = trimmedAssigned.split(' ')[0];
+              return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+                     assignedFirstName === currentUserFirstName;
+            });
           });
           
           const hiredApps = userProcessed.filter(p => p.status === 'Hired');
@@ -1165,13 +1189,17 @@ function renderEmployerSubPage(sub) {
             });
           }
         } else if (tab === 'rejected') {
-          // Filter processed apps assigned to current user
+          // Filter processed apps assigned to current user (check both full name and first name)
+          const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
           const userProcessed = processed.filter(p => {
             const job = jobs.find(j => j.id === p.jobId);
             if (!job || !job.assigned) return false;
-            return job.assigned.some(assignedName => 
-              (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
-            );
+            return job.assigned.some(assignedName => {
+              const trimmedAssigned = (assignedName || '').toString().trim();
+              const assignedFirstName = trimmedAssigned.split(' ')[0];
+              return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+                     assignedFirstName === currentUserFirstName;
+            });
           });
           
           const rejectedApps = userProcessed.filter(p => p.status === 'Rejected');
