@@ -620,16 +620,31 @@ async function submitApplication(jobId) {
       
       job.submissions++;
       saveJob(job); // Firebase - update job
+      
       console.log(`[APP DEBUG] Saving application with PIN: ${app.pin}`);
+      console.log(`[APP DEBUG] Application object:`, JSON.stringify(app, null, 2));
       
       try {
-        await saveApplication(app); // Firebase - save new application (MUST AWAIT!)
-        console.log(`[APP DEBUG] Application saved successfully, initializing chat...`);
+        const saveResult = await saveApplication(app); // Firebase - save new application (MUST AWAIT!)
+        console.log(`[APP DEBUG] Application saved successfully, result:`, saveResult);
+        console.log(`[APP DEBUG] Initializing chat for app ID: ${app.id}...`);
         saveChat(app.id, []); // Firebase - initialize empty chat
+        
+        // Verify it was actually saved by checking applications array
+        setTimeout(async () => {
+          await loadApplications();
+          const savedApp = applications.find(a => a.pin === app.pin);
+          if (savedApp) {
+            console.log(`[APP DEBUG] ✅ Verified: Application with PIN ${app.pin} found in database`);
+          } else {
+            console.error(`[APP DEBUG] ❌ WARNING: Application with PIN ${app.pin} NOT found in database after save!`);
+            showNotification('⚠️ Application may not have saved properly. Please contact support with PIN: ' + app.pin);
+          }
+        }, 2000);
       } catch (saveError) {
         console.error(`[APP DEBUG] CRITICAL: Failed to save application!`, saveError);
         // Show error to user but continue with notifications
-        showNotification('Warning: Application may not have been saved properly. Please contact support with your PIN.');
+        showNotification('Warning: Application may not have been saved properly. Please contact support with your PIN: ' + app.pin);
       }
 
       // Notify assigned employers via Discord DM (if we have employers mapping)
