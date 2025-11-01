@@ -577,10 +577,14 @@ async function searchRoblox() {
 
 async function submitApplication(jobId) {
   showLoading();
+  
+  // Generate unique ID immediately (not inside setTimeout)
+  const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+  const pin = generatePin();
+  
   setTimeout(async () => {
-    const pin = generatePin();
     const app = { 
-      id: Date.now(), 
+      id: uniqueId, 
       jobId, 
       data: {}, 
       pin: pin, 
@@ -588,7 +592,7 @@ async function submitApplication(jobId) {
       handler: '',
       appliedDate: new Date().toISOString()
     };
-    console.log(`[APP DEBUG] Generated PIN for application: ${pin}`);
+    console.log(`[APP DEBUG] Generated PIN for application: ${pin}, ID: ${uniqueId}`);
     const job = jobs.find(j => j.id === jobId);
     if (job) {
       console.log(`[APP DEBUG] Submitting application for job: ${job.title} (Company: ${job.company})`);
