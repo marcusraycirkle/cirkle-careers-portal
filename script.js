@@ -2053,11 +2053,12 @@ async function confirmDeleteProcessedApplication(appId, shouldVoidUser = false) 
       
       playSuccessSound();
       const overlay = document.getElementById('popup-overlay');
+      const message = shouldVoidUser ? 'Application voided and candidate has been notified.' : 'The application has been permanently removed.';
       overlay.innerHTML = `
         <div class="success-screen">
           <div class="tick">✓</div>
           <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Application Deleted</h2>
-          <p style="font-size:1rem; color:#6e6e73;">The application has been permanently removed.</p>
+          <p style="font-size:1rem; color:#6e6e73;">${message}</p>
         </div>
       `;
       
@@ -2067,8 +2068,6 @@ async function confirmDeleteProcessedApplication(appId, shouldVoidUser = false) 
       }, 2000);
     }
   } catch (error) {
-    console.error('Error deleting processed application:', error);
-    hidePopup();
     showNotification('Failed to delete application. Please try again.');
   }
 }
