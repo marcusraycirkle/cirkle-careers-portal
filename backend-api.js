@@ -188,7 +188,8 @@ async function saveApplication(app) {
     }
     
     const result = await response.json();
-    console.log('[APP DEBUG] Application saved successfully:', result);
+    console.log('[APP DEBUG] Application saved successfully. Response:', result);
+    console.log('[APP DEBUG] Firebase key from response:', result.firebaseKey);
     
     await loadApplications(); // Refresh applications
     return result;
