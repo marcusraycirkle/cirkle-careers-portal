@@ -578,17 +578,20 @@ async function searchRoblox() {
 async function submitApplication(jobId) {
   showLoading();
   setTimeout(async () => {
+    const pin = generatePin();
     const app = { 
       id: Date.now(), 
       jobId, 
       data: {}, 
-      pin: generatePin(), 
+      pin: pin, 
       status: 'Processing', 
       handler: '',
       appliedDate: new Date().toISOString()
     };
+    console.log(`[APP DEBUG] Generated PIN for application: ${pin}`);
     const job = jobs.find(j => j.id === jobId);
     if (job) {
+      console.log(`[APP DEBUG] Submitting application for job: ${job.title} (Company: ${job.company})`);
       app.job = job.title; // Add job title to application
       if (job.options.name) app.data.name = document.getElementById('app-name')?.value || '';
       if (job.options.email) app.data.email = document.getElementById('app-email')?.value || '';
@@ -617,7 +620,9 @@ async function submitApplication(jobId) {
       
       job.submissions++;
       saveJob(job); // Firebase - update job
+      console.log(`[APP DEBUG] Saving application with PIN: ${app.pin}`);
       saveApplication(app); // Firebase - save new application
+      console.log(`[APP DEBUG] Application saved, initializing chat...`);
       saveChat(app.id, []); // Firebase - initialize empty chat
 
       // Notify assigned employers via Discord DM (if we have employers mapping)
@@ -793,9 +798,14 @@ function renderCandidateStatus() {
 
 function checkStatus() {
   const pin = document.getElementById('status-pin')?.value;
+  console.log(`[PIN DEBUG] Checking status for PIN: ${pin}`);
   if (pin) {
+    console.log(`[PIN DEBUG] Searching in ${applications.length} applications and ${processed.length} processed`);
+    applications.forEach((a, i) => console.log(`[PIN DEBUG] App ${i}: PIN="${a.pin}"`));
+    
     const app = applications.find(a => a.pin === pin) || processed.find(h => h.pin === pin);
     if (app) {
+      console.log(`[PIN DEBUG] Found application:`, app);
       const job = jobs.find(j => j.id === app.jobId);
       let msg = `<h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Application Status</h2>`;
       msg += `<p style="font-size:1rem; color:#6e6e73; margin-bottom:1.5rem;"><strong>Position:</strong> ${job?.title || 'N/A'}</p>`;
@@ -819,8 +829,11 @@ function checkStatus() {
       
       showPopup(msg);
     } else {
+      console.error(`[PIN DEBUG] No application found with PIN: ${pin}`);
       showNotification('Invalid PIN. Please check and try again.');
     }
+  } else {
+    console.warn(`[PIN DEBUG] No PIN entered`);
   }
 }
 
@@ -1977,9 +1990,11 @@ function viewApplication(id) {
 function sendChat(appId) {
   const msg = document.getElementById('chat-input')?.value;
   if (msg && currentUser) {
+    console.log(`[CHAT DEBUG] Sending message to chat ${appId}:`, msg);
     if (!chats[appId]) chats[appId] = [];
     const timestamp = Date.now();
     chats[appId].push({ user: currentUser.name, msg, timestamp });
+    console.log(`[CHAT DEBUG] Chat now has ${chats[appId].length} messages`);
     saveChat(appId, chats[appId]); // Firebase
     
     // Clear typing indicator
@@ -1990,9 +2005,12 @@ function sendChat(appId) {
     if (chatMsgs) {
       chatMsgs.innerHTML = renderChatMessages(appId);
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      console.log(`[CHAT DEBUG] UI updated with new message`);
     }
     
     document.getElementById('chat-input').value = '';
+  } else {
+    console.warn(`[CHAT DEBUG] Cannot send - msg: ${msg}, currentUser: ${currentUser?.name}`);
   }
 }
 
@@ -2124,12 +2142,12 @@ function startChatPolling(chatId) {
     clearInterval(chatPollInterval);
   }
   
-  console.log('Starting chat polling for:', chatId);
+  console.log(`[CHAT DEBUG] Starting chat polling for: ${chatId}`);
   
   // Poll every 2 seconds for new messages and typing status
   chatPollInterval = setInterval(async () => {
     if (activeChatId === chatId) {
-      console.log('Polling chat updates...');
+      console.log(`[CHAT DEBUG] Polling chat updates for ${chatId}...`);
       await loadChats(); // Refresh chats
       const chatMsgs = document.getElementById('chat-msgs');
       if (chatMsgs) {
@@ -2142,11 +2160,14 @@ function startChatPolling(chatId) {
         if (isScrolledToBottom) {
           chatMsgs.scrollTop = chatMsgs.scrollHeight;
         }
+        console.log(`[CHAT DEBUG] Chat UI refreshed, messages: ${chats[chatId]?.length || 0}`);
+      } else {
+        console.warn(`[CHAT DEBUG] chat-msgs element not found!`);
       }
       
       await checkTypingStatus(chatId);
     } else {
-      console.log('Active chat changed, stopping polling');
+      console.log(`[CHAT DEBUG] Active chat changed (expected: ${chatId}, actual: ${activeChatId}), stopping polling`);
       stopChatPolling();
     }
   }, 2000);

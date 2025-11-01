@@ -110,8 +110,13 @@ async function loadChats() {
   try {
     const response = await fetch(`${BACKEND_URL}/api/chats`);
     const data = await response.json();
+    const oldChatCount = Object.keys(chats).length;
     chats = data || {};
-    console.log('Chats loaded');
+    const newChatCount = Object.keys(chats).length;
+    console.log(`[CHAT DEBUG] Chats loaded: ${newChatCount} chats (was ${oldChatCount})`);
+    if (activeChatId && chats[activeChatId]) {
+      console.log(`[CHAT DEBUG] Active chat ${activeChatId} has ${chats[activeChatId].length} messages`);
+    }
   } catch (error) {
     console.error('Error loading chats:', error);
   }
