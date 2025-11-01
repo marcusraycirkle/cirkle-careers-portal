@@ -14,6 +14,11 @@ const COMPANY_LOGOS = {
 // let currentUser, jobs, applications, processed, chats, employers are defined in backend-api.js
 let currentUser = null;
 
+// Chat live functionality
+let activeChatId = null;
+let chatPollInterval = null;
+let typingTimeout = null;
+
 const faqs = [
   { q: 'What is Cirkle Development Group?', a: 'The Cirkle Development Group (Cirkle Dev Group) is the parent organization established to own, manage, and provide strategic direction for all descendant companies under its corporate umbrella, including the original Cirkle Development. We are structured as a holding group dedicated to maximizing the efficiency and growth of our portfolio businesses. Our existence ensures that each subsidiary can focus entirely on its core mission and operations while benefiting from the financial stability, centralized resources, and clear legal framework provided by the Group. We are building a coherent, synergistic network where stability and strategic oversight drive collective success. You can view more by visiting https://group.cirkledevelopment.co.uk/' },
   { q: 'How do I apply?', a: 'To apply for a job, go to the "vacancies" tab, select the company you wish to apply to and view the list of available applications. Click on your selected application and fill out the details! You will be presented with a 12 digit PIN- keep this safe as it can be used to track your application status. Once your application has been approved, you will be marked as "Hired", sent a welcome email from "careers@cirkledevelopment.co.uk" and will be DMed from your assigned employer. It is as easy as that!' },
@@ -70,6 +75,10 @@ function hidePopup() {
   if (overlay && popup) {
     overlay.classList.add('hidden');
     popup.classList.add('hidden');
+  }
+  // Stop chat polling when popup closes
+  if (typeof stopChatPolling !== 'undefined') {
+    stopChatPolling();
   }
 }
 
@@ -1863,6 +1872,7 @@ function viewJob(id) {
 function viewApplication(id) {
   const app = applications.find(a => a.id === id);
   if (app) {
+    activeChatId = id; // Set active chat
     const job = jobs.find(j => j.id === app.jobId);
     let content = `<h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Application for ${job?.title || 'N/A'}</h2>`;
     content += '<div style="display:flex; align-items:center; margin-bottom:1.5rem;">' +
@@ -1875,12 +1885,32 @@ function viewApplication(id) {
     if (app.data.roblox) content += `<p style="font-weight:500;">Roblox: ${app.data.roblox}</p>`;
     if (app.data.cv) content += `<p style="font-weight:500;">CV: ${app.data.cv}</p>`;
     if (app.data.experience) content += `<p style="font-weight:500;">Experience: ${app.data.experience}</p>`;
-    content += '<div class="chat-box" style="margin:1.5rem 0; background:#f2f2f7; padding:1.25rem; border-radius:12px;"><h3 style="font-size:1.3rem; font-weight:600; margin-bottom:1rem;">Discussion Chat</h3><div id="chat-msgs" style="margin-bottom:1rem;">' + (chats[app.id] || []).map(m => `<p style="margin-bottom:0.5rem;"><strong>${m.user}:</strong> ${m.msg}</p>`).join('') + '</div><input id="chat-input" placeholder="Type your message..." style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;"><button class="big" onclick="sendChat(${id})" style="width:100%; background:#34c759;">Send</button></div>';
+    content += '<div class="chat-box" style="margin:1.5rem 0; background:#f2f2f7; padding:1.25rem; border-radius:12px;"><h3 style="font-size:1.3rem; font-weight:600; margin-bottom:1rem;">Discussion Chat</h3><div id="chat-msgs" style="max-height:300px; overflow-y:auto; margin-bottom:1rem;">' + renderChatMessages(app.id) + '</div><div id="typing-indicator" style="display:none; color:#6e6e73; font-size:0.85rem; font-style:italic; margin-bottom:0.5rem;"></div><input id="chat-input" placeholder="Type your message..." style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;"><button class="big" onclick="sendChat(${id})" style="width:100%; background:#34c759;">Send</button></div>';
     content += '<label style="display:block; font-weight:500; margin-bottom:0.5rem;">Process Application</label><select id="app-status" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;"><option value="pending">Pending</option><option value="hired">Hire</option><option value="rejected">Reject</option></select><input id="reject-reason" class="hidden" placeholder="Reason for rejection" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;"><button class="big" onclick="processApp(${id})" style="width:100%;">Process</button>';
     showPopup(content, true);
     document.getElementById('app-status')?.addEventListener('change', e => {
       document.getElementById('reject-reason')?.classList.toggle('hidden', e.target.value !== 'rejected');
     });
+    
+    // Set up chat input typing indicator
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+      chatInput.addEventListener('input', () => {
+        setTypingStatus(id, true);
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => setTypingStatus(id, false), 2000);
+      });
+      
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          sendChat(id);
+        }
+      });
+    }
+    
+    // Start polling for new messages
+    startChatPolling(id);
   }
 }
 
@@ -1888,9 +1918,20 @@ function sendChat(appId) {
   const msg = document.getElementById('chat-input')?.value;
   if (msg && currentUser) {
     if (!chats[appId]) chats[appId] = [];
-    chats[appId].push({ user: currentUser.name, msg });
+    const timestamp = Date.now();
+    chats[appId].push({ user: currentUser.name, msg, timestamp });
     saveChat(appId, chats[appId]); // Firebase
-    document.getElementById('chat-msgs').innerHTML += `<p style="margin-bottom:0.5rem;"><strong>${currentUser.name}:</strong> ${msg}</p>`;
+    
+    // Clear typing indicator
+    setTypingStatus(appId, false);
+    
+    // Update UI immediately
+    const chatMsgs = document.getElementById('chat-msgs');
+    if (chatMsgs) {
+      chatMsgs.innerHTML = renderChatMessages(appId);
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    }
+    
     document.getElementById('chat-input').value = '';
   }
 }
@@ -1964,4 +2005,88 @@ function resetAllData() {
       `;
     }, 2000);
   }
+}
+
+// Live Chat Helper Functions
+function renderChatMessages(chatId) {
+  const messages = chats[chatId] || [];
+  return messages.map(m => `<p style="margin-bottom:0.5rem;"><strong>${m.user}:</strong> ${m.msg}</p>`).join('');
+}
+
+async function setTypingStatus(chatId, isTyping) {
+  if (!currentUser) return;
+  try {
+    await fetch(`${BACKEND_URL}/api/chats/${chatId}/typing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        user: currentUser.name, 
+        isTyping,
+        timestamp: Date.now()
+      })
+    });
+  } catch (error) {
+    console.error('Error updating typing status:', error);
+  }
+}
+
+async function checkTypingStatus(chatId) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/chats/${chatId}/typing`);
+    const data = await response.json();
+    const typingIndicator = document.getElementById('typing-indicator');
+    
+    if (typingIndicator && data && data.user && data.user !== currentUser.name) {
+      // Only show if typing event is recent (within last 3 seconds)
+      if (Date.now() - data.timestamp < 3000) {
+        typingIndicator.textContent = `${data.user} is typing...`;
+        typingIndicator.style.display = 'block';
+      } else {
+        typingIndicator.style.display = 'none';
+      }
+    } else if (typingIndicator) {
+      typingIndicator.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Error checking typing status:', error);
+  }
+}
+
+function startChatPolling(chatId) {
+  // Clear any existing interval
+  if (chatPollInterval) {
+    clearInterval(chatPollInterval);
+  }
+  
+  // Poll every 2 seconds for new messages and typing status
+  chatPollInterval = setInterval(async () => {
+    if (activeChatId === chatId) {
+      await loadChats(); // Refresh chats
+      const chatMsgs = document.getElementById('chat-msgs');
+      if (chatMsgs) {
+        const currentScroll = chatMsgs.scrollTop;
+        const isScrolledToBottom = chatMsgs.scrollHeight - chatMsgs.clientHeight <= currentScroll + 50;
+        
+        chatMsgs.innerHTML = renderChatMessages(chatId);
+        
+        // Auto-scroll if user was at bottom
+        if (isScrolledToBottom) {
+          chatMsgs.scrollTop = chatMsgs.scrollHeight;
+        }
+      }
+      
+      await checkTypingStatus(chatId);
+    }
+  }, 2000);
+}
+
+function stopChatPolling() {
+  if (chatPollInterval) {
+    clearInterval(chatPollInterval);
+    chatPollInterval = null;
+  }
+  if (activeChatId) {
+    setTypingStatus(activeChatId, false);
+  }
+  activeChatId = null;
 }

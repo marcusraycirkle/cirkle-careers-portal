@@ -41,6 +41,11 @@ async function initBackend() {
       await loadChats();
     }, 5000);
     
+    // Check for stale applications every hour
+    setInterval(async () => {
+      await checkStaleApplications();
+    }, 60 * 60 * 1000); // Every 1 hour
+    
   } catch (error) {
     console.error('Failed to load backend data:', error);
   }
@@ -255,6 +260,20 @@ async function saveChat(chatId, messages) {
     await loadChats(); // Refresh chats
   } catch (error) {
     console.error('Error saving chat:', error);
+  }
+}
+
+// Check for stale applications and send reminders
+async function checkStaleApplications() {
+  try {
+    console.log('Checking for stale applications...');
+    const response = await fetch(`${BACKEND_URL}/api/check-stale-applications`, {
+      method: 'POST'
+    });
+    const result = await response.json();
+    console.log('Stale application check result:', result);
+  } catch (error) {
+    console.error('Error checking stale applications:', error);
   }
 }
 
