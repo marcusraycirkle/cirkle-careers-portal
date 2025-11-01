@@ -956,7 +956,13 @@ function renderEmployerSubPage(sub) {
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
           <div class="box">
             <h3>Assigned Applications</h3>
-            <p style="font-size:2.5rem; font-weight:700; color:#007aff; margin:1rem 0;">${applications.filter(a => jobs.find(j => j.id === a.jobId)?.assigned.includes(currentUser.name)).length}</p>
+            <p style="font-size:2.5rem; font-weight:700; color:#007aff; margin:1rem 0;">${applications.filter(a => {
+              const job = jobs.find(j => j.id === a.jobId);
+              if (!job || !job.assigned) return false;
+              return job.assigned.some(assignedName => 
+                (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
+              );
+            }).length}</p>
           </div>
           <div class="box">
               <h3>Total Job Listings</h3>
@@ -977,7 +983,13 @@ function renderEmployerSubPage(sub) {
       setTimeout(() => {
         const accepted = processed.filter(p => p.status === 'Hired' && p.handler === currentUser.name).length;
         const declined = processed.filter(p => p.status === 'Rejected' && p.handler === currentUser.name).length;
-        const pending = applications.filter(a => jobs.find(j => j.id === a.jobId)?.assigned.includes(currentUser.name)).length;
+        const pending = applications.filter(a => {
+          const job = jobs.find(j => j.id === a.jobId);
+          if (!job || !job.assigned) return false;
+          return job.assigned.some(assignedName => 
+            (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
+          );
+        }).length;
         
         new Chart(document.getElementById('activity-chart'), {
           type: 'doughnut',
@@ -1045,12 +1057,32 @@ function renderEmployerSubPage(sub) {
       const tabs = ['processing', 'hired', 'rejected'];
       const currentTab = 'processing';
       
+      // Count applications assigned to current user
+      const userAppsCount = applications.filter(app => {
+        const job = jobs.find(j => j.id === app.jobId);
+        if (!job || !job.assigned) return false;
+        return job.assigned.some(assignedName => 
+          (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
+        );
+      }).length;
+      
+      const userProcessed = processed.filter(p => {
+        const job = jobs.find(j => j.id === p.jobId);
+        if (!job || !job.assigned) return false;
+        return job.assigned.some(assignedName => 
+          (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
+        );
+      });
+      
+      const hiredCount = userProcessed.filter(p => p.status === 'Hired').length;
+      const rejectedCount = userProcessed.filter(p => p.status === 'Rejected').length;
+      
       subContent = `
         <h2 style="font-size:2rem; font-weight:700; margin-bottom:1.5rem;">Candidate Management</h2>
         <div class="tab-buttons" style="margin-bottom:2rem;">
-          <button class="tab-btn active" data-tab="processing">Processing (${applications.length})</button>
-          <button class="tab-btn" data-tab="hired">Hired (${processed.filter(p => p.status === 'Hired').length})</button>
-          <button class="tab-btn" data-tab="rejected">Rejected (${processed.filter(p => p.status === 'Rejected').length})</button>
+          <button class="tab-btn active" data-tab="processing">Processing (${userAppsCount})</button>
+          <button class="tab-btn" data-tab="hired">Hired (${hiredCount})</button>
+          <button class="tab-btn" data-tab="rejected">Rejected (${rejectedCount})</button>
         </div>
         <div id="candidates-content"></div>
       `;
@@ -1064,10 +1096,20 @@ function renderEmployerSubPage(sub) {
         let html = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem;">';
         
         if (tab === 'processing') {
-          if (applications.length === 0) {
-            html = '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No pending applications</p></div>';
+          // Filter applications assigned to current user
+          const userApplications = applications.filter(app => {
+            const job = jobs.find(j => j.id === app.jobId);
+            if (!job || !job.assigned) return false;
+            // Check if current user is assigned to this job
+            return job.assigned.some(assignedName => 
+              (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
+            );
+          });
+          
+          if (userApplications.length === 0) {
+            html = '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No pending applications assigned to you</p></div>';
           } else {
-            applications.forEach(app => {
+            userApplications.forEach(app => {
               const job = jobs.find(j => j.id === app.jobId);
               html += `
                 <div class="card" onclick="viewApplicationDetails(${app.id})" style="text-align:left; padding:1.5rem;">
@@ -1083,7 +1125,16 @@ function renderEmployerSubPage(sub) {
             });
           }
         } else if (tab === 'hired') {
-          const hiredApps = processed.filter(p => p.status === 'Hired');
+          // Filter processed apps assigned to current user
+          const userProcessed = processed.filter(p => {
+            const job = jobs.find(j => j.id === p.jobId);
+            if (!job || !job.assigned) return false;
+            return job.assigned.some(assignedName => 
+              (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
+            );
+          });
+          
+          const hiredApps = userProcessed.filter(p => p.status === 'Hired');
           if (hiredApps.length === 0) {
             html = '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No hired candidates</p></div>';
           } else {
@@ -1101,7 +1152,16 @@ function renderEmployerSubPage(sub) {
             });
           }
         } else if (tab === 'rejected') {
-          const rejectedApps = processed.filter(p => p.status === 'Rejected');
+          // Filter processed apps assigned to current user
+          const userProcessed = processed.filter(p => {
+            const job = jobs.find(j => j.id === p.jobId);
+            if (!job || !job.assigned) return false;
+            return job.assigned.some(assignedName => 
+              (assignedName || '').toString().trim() === (currentUser.name || '').toString().trim()
+            );
+          });
+          
+          const rejectedApps = userProcessed.filter(p => p.status === 'Rejected');
           if (rejectedApps.length === 0) {
             html = '<div class="box"><p style="text-align:center; color:#6e6e73; padding:2rem 0;">No rejected candidates</p></div>';
           } else {
