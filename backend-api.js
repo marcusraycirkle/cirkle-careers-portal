@@ -168,16 +168,33 @@ async function deleteJob(jobId) {
 // Save application to backend
 async function saveApplication(app) {
   try {
+    console.log('[APP DEBUG] Saving application to backend:', {
+      pin: app.pin,
+      jobId: app.jobId,
+      name: app.data?.name,
+      id: app.id
+    });
+    
     const response = await fetch(`${BACKEND_URL}/api/applications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(app)
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[APP DEBUG] Failed to save application:', response.status, errorText);
+      throw new Error(`Failed to save application: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('[APP DEBUG] Application saved successfully:', result);
+    
     await loadApplications(); // Refresh applications
-    return await response.json();
+    return result;
   } catch (error) {
-    console.error('Error saving application:', error);
+    console.error('[APP DEBUG] Error saving application:', error);
+    throw error; // Re-throw so calling code knows it failed
   }
 }
 

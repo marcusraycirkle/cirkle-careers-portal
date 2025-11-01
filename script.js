@@ -621,9 +621,16 @@ async function submitApplication(jobId) {
       job.submissions++;
       saveJob(job); // Firebase - update job
       console.log(`[APP DEBUG] Saving application with PIN: ${app.pin}`);
-      saveApplication(app); // Firebase - save new application
-      console.log(`[APP DEBUG] Application saved, initializing chat...`);
-      saveChat(app.id, []); // Firebase - initialize empty chat
+      
+      try {
+        await saveApplication(app); // Firebase - save new application (MUST AWAIT!)
+        console.log(`[APP DEBUG] Application saved successfully, initializing chat...`);
+        saveChat(app.id, []); // Firebase - initialize empty chat
+      } catch (saveError) {
+        console.error(`[APP DEBUG] CRITICAL: Failed to save application!`, saveError);
+        // Show error to user but continue with notifications
+        showNotification('Warning: Application may not have been saved properly. Please contact support with your PIN.');
+      }
 
       // Notify assigned employers via Discord DM (if we have employers mapping)
       if (job.assigned && Array.isArray(job.assigned) && typeof fetch === 'function') {
