@@ -2010,13 +2010,15 @@ function resetAllData() {
 // Live Chat Helper Functions
 function renderChatMessages(chatId) {
   const messages = chats[chatId] || [];
+  console.log(`Rendering ${messages.length} messages for chat ${chatId}`);
   return messages.map(m => `<p style="margin-bottom:0.5rem;"><strong>${m.user}:</strong> ${m.msg}</p>`).join('');
 }
 
 async function setTypingStatus(chatId, isTyping) {
   if (!currentUser) return;
+  console.log(`Setting typing status for chat ${chatId}:`, isTyping);
   try {
-    await fetch(`${BACKEND_URL}/api/chats/${chatId}/typing`, {
+    const response = await fetch(`${BACKEND_URL}/api/chats/${chatId}/typing`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -2025,6 +2027,7 @@ async function setTypingStatus(chatId, isTyping) {
         timestamp: Date.now()
       })
     });
+    console.log('Typing status response:', await response.json());
   } catch (error) {
     console.error('Error updating typing status:', error);
   }
@@ -2036,11 +2039,14 @@ async function checkTypingStatus(chatId) {
     const data = await response.json();
     const typingIndicator = document.getElementById('typing-indicator');
     
+    console.log('Typing status data:', data);
+    
     if (typingIndicator && data && data.user && data.user !== currentUser.name) {
       // Only show if typing event is recent (within last 3 seconds)
       if (Date.now() - data.timestamp < 3000) {
         typingIndicator.textContent = `${data.user} is typing...`;
         typingIndicator.style.display = 'block';
+        console.log('Showing typing indicator for:', data.user);
       } else {
         typingIndicator.style.display = 'none';
       }
@@ -2058,9 +2064,12 @@ function startChatPolling(chatId) {
     clearInterval(chatPollInterval);
   }
   
+  console.log('Starting chat polling for:', chatId);
+  
   // Poll every 2 seconds for new messages and typing status
   chatPollInterval = setInterval(async () => {
     if (activeChatId === chatId) {
+      console.log('Polling chat updates...');
       await loadChats(); // Refresh chats
       const chatMsgs = document.getElementById('chat-msgs');
       if (chatMsgs) {
@@ -2076,6 +2085,9 @@ function startChatPolling(chatId) {
       }
       
       await checkTypingStatus(chatId);
+    } else {
+      console.log('Active chat changed, stopping polling');
+      stopChatPolling();
     }
   }, 2000);
 }
