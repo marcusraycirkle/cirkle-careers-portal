@@ -3,12 +3,25 @@
 // Data Structures - ALL SENSITIVE DATA NOW IN BACKEND
 // No more hardcoded credentials visible in browser!
 const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
+
+// Company logos - using permanent Discord CDN links (no expiry parameters)
 const COMPANY_LOGOS = {
-  'Cirkle Development': 'https://media.discordapp.net/attachments/1419317839269073016/1433841576924287056/Untitled_design.png?ex=69062887&is=6904d707&hm=c270528597cc86f267c27fef611f68ddd636d0636893d2451e996c979c7a9a7c&=&format=webp&quality=lossless',
-  'Aer Lingus': 'https://media.discordapp.net/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg?ex=69063d7c&is=6904ebfc&hm=9730616105ee068db1d7239226f30f559bcc37c172c2a813559fbdd26ffebf15&=&format=webp',
-  'DevDen': 'https://media.discordapp.net/attachments/1315278404009988107/1426979098328174634/image.png?ex=69063dd9&is=6904ec59&hm=f89013f98d1fdabd1265caba53fa7ee2eb4b103296b4e217128c387b3b5a1673&=&format=webp&quality=lossless',
-  'Cirkle Group Careers': 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg?ex=69063d7c&is=6904ebfc&hm=4522f8f7de2a4af58ae65b1614c3e4b39b6c8537db00c0e15235761948f69199&=&format=webp'
+  'Cirkle Development': 'https://cdn.discordapp.com/attachments/1419317839269073016/1433841576924287056/Untitled_design.png',
+  'Aer Lingus': 'https://cdn.discordapp.com/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg',
+  'DevDen': 'https://cdn.discordapp.com/attachments/1315278404009988107/1426979098328174634/image.png',
+  'Cirkle Group Careers': 'https://cdn.discordapp.com/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
 };
+
+// Fallback function to get company logo with error handling
+function getCompanyLogo(companyName) {
+  const logo = COMPANY_LOGOS[companyName];
+  if (!logo) {
+    console.warn(`No logo found for company: ${companyName}`);
+    // Return a placeholder with the company's first letter
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=007aff&color=fff&size=120&bold=true`;
+  }
+  return logo;
+}
 
 // Data will be loaded from backend - see backend-api.js
 // let currentUser, jobs, applications, processed, chats, employers are defined in backend-api.js
@@ -362,7 +375,7 @@ function renderHome() {
         <p style="font-size:1.2rem; color:#6e6e73; max-width:700px; margin:0 auto 2rem; line-height:1.8;">Join our growing family of innovative companies and talented professionals</p>
       </div>
       
-      <img src="https://images-ext-1.discordapp.net/external/62yHoKp0AZjTT2rKgBjq8iQfstmkLlS8b5OcJzSEPck/https/pbs.twimg.com/media/GrBTqaRX0AEYnNZ.jpg%3Alarge?format=webp" alt="Cirkle Careers Banner" style="width:100%; border-radius:20px; margin-bottom:3rem; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+      <img src="https://cdn.discordapp.com/attachments/1404157487799861332/1432846309362237480/image.png" alt="Cirkle Careers Banner" style="width:100%; border-radius:20px; margin-bottom:3rem; box-shadow:0 8px 24px rgba(0,0,0,0.12);" onerror="this.style.display='none';">
       
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:2rem; margin-bottom:3rem;">
         <div style="background:#fff; padding:2rem; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,0.08); text-align:center; transition:transform 0.3s;">
@@ -416,17 +429,23 @@ function renderVacancies() {
     main.innerHTML = `
       <h2 style="font-size:2.5rem; font-weight:800; margin-bottom:1rem; text-align:center;">Available Vacancies</h2>
       <p style="text-align:center; font-size:1.1rem; color:#6e6e73; margin-bottom:2rem;">Explore opportunities across our family of companies</p>
-      <img src="https://media.discordapp.net/attachments/1404157487799861332/1432846309362237480/image.png?ex=69067e1d&is=69052c9d&hm=155818abb2eb51096b1ceb3da021688bc3d42705d405c3738209c7af3ae5330e&=&format=webp&quality=lossless" alt="Vacancies Banner" style="border-radius:20px; margin-bottom:2.5rem; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+      <img src="https://cdn.discordapp.com/attachments/1404157487799861332/1432846309362237480/image.png" alt="Vacancies Banner" style="border-radius:20px; margin-bottom:2.5rem; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.12);" onerror="this.style.display='none';">
       <div style="display:grid; gap:1.5rem;">
     `;
     
     COMPANIES.forEach(company => {
-      const count = jobs.filter(j => (j.company || '').toString().trim() === company.toString().trim() && j.active).length;
-      const logo = COMPANY_LOGOS[company] || `https://via.placeholder.com/80?text=${company[0]}`;
+      // Normalize company name for comparison (trim whitespace)
+      const normalizedCompany = company.trim();
+      const count = jobs.filter(j => {
+        const jobCompany = (j.company || '').toString().trim();
+        return jobCompany === normalizedCompany && j.active;
+      }).length;
+      
+      const logo = getCompanyLogo(company);
       
       main.innerHTML += `
         <div class="row" onclick="navigate('company/${encodeURIComponent(company)}')" style="display:flex; align-items:center; padding:1.5rem; background:#fff; border-radius:16px; cursor:pointer; transition:all 0.3s; box-shadow:0 4px 12px rgba(0,0,0,0.08); gap:1.5rem;">
-          <img src="${logo}" alt="${company}" style="width:80px; height:80px; border-radius:12px; object-fit:cover; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+          <img src="${logo}" alt="${company}" style="width:80px; height:80px; border-radius:12px; object-fit:cover; box-shadow:0 2px 8px rgba(0,0,0,0.1);" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(company)}&background=007aff&color=fff&size=80&bold=true';">
           <div style="flex:1;">
             <h3 style="font-size:1.4rem; font-weight:700; margin-bottom:0.25rem; color:#1d1d1f;">${company}</h3>
             <p style="color:#6e6e73; font-size:0.95rem;">Explore positions in this company</p>
@@ -445,12 +464,23 @@ function renderVacancies() {
 function renderCompanyJobs(company) {
   const main = document.getElementById('main-content');
   if (main) {
-    const logo = COMPANY_LOGOS[company] || `https://via.placeholder.com/120?text=${company[0]}`;
-  const list = jobs.filter(j => (j.company || '').toString().trim() === company.toString().trim() && j.active);
+    const logo = getCompanyLogo(company);
+    
+    // Normalize company name for comparison
+    const normalizedCompany = company.trim();
+    const list = jobs.filter(j => {
+      const jobCompany = (j.company || '').toString().trim();
+      const isMatch = jobCompany === normalizedCompany && j.active;
+      console.log(`[JOB FILTER] Checking job "${j.title}": company="${jobCompany}", target="${normalizedCompany}", active=${j.active}, match=${isMatch}`);
+      return isMatch;
+    });
+    
+    console.log(`[COMPANY JOBS] Rendering ${list.length} jobs for company: "${company}"`);
+    console.log(`[COMPANY JOBS] All jobs:`, jobs.map(j => ({ title: j.title, company: j.company, active: j.active })));
     
     main.innerHTML = `
       <div style="text-align:center; margin-bottom:2rem;">
-        <img src="${logo}" alt="${company}" style="width:120px; height:120px; border-radius:20px; margin-bottom:1rem; box-shadow:0 4px 16px rgba(0,0,0,0.12); object-fit:cover;">
+        <img src="${logo}" alt="${company}" style="width:120px; height:120px; border-radius:20px; margin-bottom:1rem; box-shadow:0 4px 16px rgba(0,0,0,0.12); object-fit:cover;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(company)}&background=007aff&color=fff&size=120&bold=true';">
         <h1 style="font-size:2.8rem; font-weight:800; margin-bottom:0.5rem;">${company}</h1>
         <p style="font-size:1.1rem; color:#6e6e73;">${list.length} active position${list.length !== 1 ? 's' : ''} available</p>
       </div>
@@ -710,7 +740,7 @@ async function submitApplication(jobId) {
       if (app.data.discord) {
         (async () => {
           try {
-            const companyLogo = COMPANY_LOGOS[companyKey] || '';
+            const companyLogo = getCompanyLogo(companyKey);
             
             await fetch(`${BACKEND_URL}/api/discord/dm`, {
               method: 'POST',
@@ -722,7 +752,7 @@ async function submitApplication(jobId) {
                     title: '✅ Application Received',
                     description: `**RE: ${job.title}**`,
                     color: 0x007AFF,
-                    thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                    thumbnail: { url: companyLogo },
                     fields: [
                       {
                         name: '\u200b',
@@ -913,11 +943,12 @@ function renderInformation() {
     // Add banner after FAQs
     main.innerHTML += `
       <div style="max-width:900px; margin:3rem auto 0; text-align:center;">
-        <img src="https://media.discordapp.net/attachments/1419317839269073016/1433857051699712081/allcareersbanner.png?ex=690636f0&is=6904e570&hm=0002c93474b23a7a23fc7bd56d5cc0db5e319831f8e71ce5d92baa1dfc6557d7&=&format=webp&quality=lossless" 
+        <img src="https://cdn.discordapp.com/attachments/1419317839269073016/1433857051699712081/allcareersbanner.png" 
              alt="allCareers Banner" 
              style="width:100%; max-width:800px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08); transition:transform 0.3s;" 
              onmouseover="this.style.transform='scale(1.02)'" 
-             onmouseout="this.style.transform='scale(1)'">
+             onmouseout="this.style.transform='scale(1)'"
+             onerror="this.style.display='none';">
       </div>
     `;
     
@@ -1713,7 +1744,7 @@ function processFeedback(appId, action) {
         (async () => {
           try {
             const job = jobs.find(j => j.title === app.job);
-            const companyLogo = job ? COMPANY_LOGOS[(job.company || '').toString().trim()] || '' : '';
+            const companyLogo = job ? getCompanyLogo((job.company || '').toString().trim()) : getCompanyLogo('Cirkle Development Group');
             
             await fetch(`${BACKEND_URL}/api/discord/dm`, {
               method: 'POST',
@@ -1725,7 +1756,7 @@ function processFeedback(appId, action) {
                     title: '⏳ Application Under Review',
                     description: `**RE: ${app.job}**`,
                     color: 0xFF9500,
-                    thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                    thumbnail: { url: companyLogo },
                     fields: [
                       {
                         name: '\u200b',
@@ -1777,7 +1808,7 @@ async function confirmHire(appId) {
     if (app.data.discord) {
       try {
         const job = jobs.find(j => j.title === app.job);
-        const companyLogo = job ? COMPANY_LOGOS[(job.company || '').toString().trim()] || '' : '';
+        const companyLogo = job ? getCompanyLogo((job.company || '').toString().trim()) : getCompanyLogo('Cirkle Development Group');
         
         await fetch(`${BACKEND_URL}/api/discord/dm`, {
           method: 'POST',
@@ -1789,7 +1820,7 @@ async function confirmHire(appId) {
                 title: '🎉 Application Successful',
                 description: `**RE: ${app.job}**`,
                 color: 0x34C759,
-                thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                thumbnail: { url: companyLogo },
                 fields: [
                   {
                     name: '\u200b',
@@ -1861,7 +1892,7 @@ async function confirmReject(appId) {
     if (app.data.discord) {
       try {
         const job = jobs.find(j => j.title === app.job);
-        const companyLogo = job ? COMPANY_LOGOS[(job.company || '').toString().trim()] || '' : '';
+        const companyLogo = job ? getCompanyLogo((job.company || '').toString().trim()) : getCompanyLogo('Cirkle Development Group');
         
         await fetch(`${BACKEND_URL}/api/discord/dm`, {
           method: 'POST',
@@ -1873,10 +1904,10 @@ async function confirmReject(appId) {
                 title: '📋 Application Status Update',
                 description: `**RE: ${app.job}** • ${job ? job.company : 'Cirkle Development Group'}`,
                 color: 0xFF3B30,
-                thumbnail: companyLogo ? { url: companyLogo } : undefined,
+                thumbnail: { url: companyLogo },
                 fields: [
                   {
-                    name: '� Status Update',
+                    name: '📢 Status Update',
                     value: 'Dear Candidate,\n\nThank you for your interest in the above-mentioned position and for taking the time to submit your application.\n\nAfter careful consideration, we regret to inform you that we will not be proceeding with your application at this time. \n\n We apologise for the inconvenience and appreciate your understanding. Your new status is: **❌ Rejected** \n\n Kind Regards,\nallCareers Department',
                     inline: false
                   },
