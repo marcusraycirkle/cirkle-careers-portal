@@ -639,7 +639,10 @@ async function submitApplication(jobId) {
         app.data.roblox = robloxId;
         app.data.robloxAvatar = `https://via.placeholder.com/48?text=R`;
       }
-      if (job.options.cv) app.data.cv = document.getElementById('app-cv')?.files[0] ? 'CV attached' : '';
+      if (job.options.cv) {
+        const cvFile = document.getElementById('app-cv')?.files[0];
+        app.data.cv = cvFile ? `📎 ${cvFile.name} (${(cvFile.size / 1024).toFixed(1)} KB)` : '';
+      }
       if (job.options.experience) app.data.experience = document.getElementById('app-experience')?.value || '';
       
       app.data.answers = {};
@@ -826,6 +829,7 @@ async function submitApplication(jobId) {
           if (app.data.email) embed.fields.push({ name: '📧 Email', value: app.data.email, inline: true });
           if (app.data.discord) embed.fields.push({ name: '💬 Discord ID', value: app.data.discord, inline: true });
           if (app.data.roblox) embed.fields.push({ name: '🎮 Roblox ID', value: app.data.roblox, inline: true });
+          if (app.data.cv) embed.fields.push({ name: '📄 CV', value: app.data.cv, inline: false });
           if (app.data.experience) embed.fields.push({ name: '💼 Experience', value: app.data.experience.substring(0, 1000), inline: false });
           
           // Add answers to extra questions
@@ -1640,13 +1644,15 @@ function viewApplicationDetails(id) {
         ${job && job.questions.length > 0 ? `
           <div class="box" style="margin-bottom:1.5rem;">
             <h3>Extra Questions (${job.questions.length})</h3>
-            ${job.questions.map((q, i) => `
+            ${job.questions.map((q, i) => {
+              const sanitizedKey = q.title.replace(/[.$#\[\]\/:?*]/g, '_');
+              return `
               <div style="padding:1rem; background:#f9f9fb; border-radius:12px; margin-bottom:1rem;">
                 <h4 style="font-size:1.1rem; font-weight:600; margin-bottom:0.5rem;">${q.title}</h4>
                 ${q.desc ? `<p style="color:#6e6e73; font-size:0.9rem; margin-bottom:0.5rem;">${q.desc}</p>` : ''}
-                <p style="margin-top:0.75rem; padding:0.75rem; background:#fff; border-radius:8px;"><strong>Answer:</strong> ${app.data.answers?.[q.title] || 'No answer provided'}</p>
+                <p style="margin-top:0.75rem; padding:0.75rem; background:#fff; border-radius:8px;"><strong>Answer:</strong> ${app.data.answers?.[sanitizedKey] || 'No answer provided'}</p>
               </div>
-            `).join('')}
+            `}).join('')}
           </div>
         ` : ''}
         
