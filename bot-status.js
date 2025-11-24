@@ -1,6 +1,12 @@
 // Bot Status Updater - Keeps the allCareers bot online with rotating status
 // This script needs to run continuously (e.g., on a server or Railway)
 
+// If you need to suspend bots immediately, set env `DISABLE_BOTS=true` or `SUSPEND_BOTS=true`.
+if (process.env.DISABLE_BOTS === 'true' || process.env.SUSPEND_BOTS === 'true') {
+  console.log('Bot suspended via environment flag (DISABLE_BOTS/SUSPEND_BOTS). Exiting.');
+  process.exit(0);
+}
+
 // Get token from environment variable (set in Railway) or fallback to placeholder
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_DISCORD_BOT_TOKEN_HERE';
 
@@ -162,5 +168,11 @@ function connectBot() {
 }
 
 // Start the bot
+// If the token is not configured, exit safely
+if (!DISCORD_BOT_TOKEN || DISCORD_BOT_TOKEN === 'YOUR_DISCORD_BOT_TOKEN_HERE') {
+  console.log('Discord bot token not configured or placeholder found. Exiting without connecting.');
+  process.exit(0);
+}
+
 console.log('Starting allCareers bot...');
 connectBot();

@@ -78,9 +78,27 @@ node bot-status-simple.js
 ## Troubleshooting
 
 ### Bot not appearing online
-- Make sure `bot-status.js` is running (not `bot-status-simple.js`)
-- Check that the bot token is correct
-- Verify you have `ws` package installed: `npm install ws`
+If you need to immediately suspend the bot (emergency):
+
+- If the bot is run with `pm2`:
+	- `pm2 stop allCareers-bot` or `pm2 stop bot-status.js`
+	- `pm2 delete allCareers-bot` to remove the process
+- If the bot is run with `systemd` or a service manager, stop the service: `sudo systemctl stop allcareers-bot.service`
+- If started with `nohup` or in the background, find and kill the process:
+	- `ps aux | grep bot-status` to find PIDs
+	- `kill <PID>` or `kill -9 <PID>` if needed
+- Alternatively, on the host set the environment variable `DISABLE_BOTS=true` (or `SUSPEND_BOTS=true`) for the running environment and restart the process manager (preferred when using container/orchestrator environments).
+
+Security steps to follow after suspension:
+
+- Immediately rotate/revoke the Discord bot token in the Discord Developer Portal.
+- Regenerate any webhooks and do not re-enable them until credentials are rotated and verified.
+- Remove any bot tokens from source files and use environment variables or a secret store instead.
+
+To re-enable the bot later:
+
+- Ensure the token is stored securely (e.g., environment variable `DISCORD_BOT_TOKEN`) and set `DISABLE_BOTS`/`SUSPEND_BOTS` to `false` or unset the variable.
+- Start the process again with `pm2 start bot-status.js --name allCareers-bot` or your preferred supervisor.
 
 ### Status not updating
 - Check the console for errors
