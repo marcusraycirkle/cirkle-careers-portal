@@ -793,12 +793,12 @@ async function submitApplication(jobId) {
         })();
       }
       
-      // Send to Discord webhook - route to different channels based on company
+      // Send to Discord webhook - DISABLED FOR SECURITY
       const COMPANY_WEBHOOKS = {
-        'Cirkle Development': 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA',
-        'Cirkle Group Careers': 'https://discord.com/api/webhooks/1433584396585271338/CjTLEfQmEPMbkeo-RLPB0lMN_gDwrOus0Pam3dGnvnwATN5pl9cItE-AyuK4a9cJRXAA',
-        'Aer Lingus': 'https://discord.com/api/webhooks/1433867955770495120/--i3Y4XsgLOu2Ppoe5WuFRm2dIZgVCwPhSw9oKqBI6tmRxO3I8mVq-jrsGlQCnz8VmbS',
-        'DevDen': 'https://discord.com/api/webhooks/1433868342480863242/l1C_3xl08wQoXGkxXOnh7xXutAQwhkdaJOK7srlwMDPdoawsy94u85Gh6Kzt2Cz3FvRg'
+        'Cirkle Development': null,
+        'Cirkle Group Careers': null,
+        'Aer Lingus': null,
+        'DevDen': null
       };
       
       const COMPANY_ROLE_PINGS = {
