@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cirkle Group Careers</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cirkle Development - Maintenance</title>
   
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="https://cdn.discordapp.com/attachments/1419317839269073016/1433880859022200872/allCareers.png">
@@ -78,7 +78,22 @@
     <source src="https://cdn.pixabay.com/audio/2025/09/02/audio_4e70a465f7.mp3" type="audio/mpeg">
   </audio>
 
-  <script src="backend-api.js"></script>
-  <script src="script.js"></script>
-</body>
-</html>
+    <script>
+      // Disable right-click during maintenance
+      document.addEventListener('contextmenu', e => e.preventDefault());
+        
+      // Check backend status every 30 seconds
+      setInterval(async () => {
+        try {
+          const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/status');
+          const data = await response.json();
+          if (!data.offline) {
+            window.location.reload();
+          }
+        } catch (e) {
+          // Backend still offline
+        }
+      }, 30000);
+    </script>
+  </body>
+  </html>
