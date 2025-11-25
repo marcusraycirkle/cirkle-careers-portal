@@ -1,11 +1,15 @@
-# Sensitive credentials - DO NOT COMMIT
-cloudflare-worker.js
-firebase-config.js
-firebase-helpers.js
+# 🛡️ SENTINEL Security - Protected Files
+# IMPORTANT: These files contain credentials and must NEVER be committed
 
 # Environment variables
 .env
 .env.local
+.env.production
+
+# Backup/old files with credentials
+cloudflare-worker.js.backup
+firebase-config.js
+firebase-helpers.js
 
 # Node modules
 node_modules/
@@ -13,7 +17,21 @@ node_modules/
 # Logs
 *.log
 npm-debug.log*
+pm2.log
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+build/
+
+# Wrangler
+.wrangler/
+wrangler.toml.backup
+

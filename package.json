@@ -1,5 +1,19 @@
 {
+  "name": "cirkle-careers-portal",
+  "version": "2.0.0",
+  "description": "🛡️ SENTINEL Security Protected Careers Portal",
+  "main": "bot-sentinel.js",
+  "scripts": {
+    "start": "node bot-sentinel.js",
+    "bot": "node bot-sentinel.js",
+    "dev": "node bot-sentinel.js"
+  },
   "dependencies": {
+    "discord.js": "^14.17.3",
     "ws": "^8.18.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
+

@@ -793,12 +793,12 @@ async function submitApplication(jobId) {
         })();
       }
       
-      // Send to Discord webhook - DISABLED FOR SECURITY
-      const COMPANY_WEBHOOKS = {
-        'Cirkle Development': null,
-        'Cirkle Group Careers': null,
-        'Aer Lingus': null,
-        'DevDen': null
+      // 🛡️ SENTINEL Security: Send to Discord via bot channel posting (replaces webhooks)
+      const COMPANY_CHANNELS = {
+        'Cirkle Development': '1364978443292377211',
+        'Cirkle Group Careers': '1364978443292377211',
+        'Aer Lingus': '1395759805305716848',
+        'DevDen': '1364978443292377211' // Using Cirkle channel for now
       };
       
       const COMPANY_ROLE_PINGS = {
@@ -808,20 +808,22 @@ async function submitApplication(jobId) {
         'DevDen': '<@&1144662197335769089>'
       };
       
-  const WEBHOOK_URL = COMPANY_WEBHOOKS[companyKey] || COMPANY_WEBHOOKS['Cirkle Development']; // Default to Cirkle Development
-  const ROLE_PING = COMPANY_ROLE_PINGS[companyKey] || COMPANY_ROLE_PINGS['Cirkle Development'];
+      const CHANNEL_ID = COMPANY_CHANNELS[companyKey] || COMPANY_CHANNELS['Cirkle Development'];
+      const ROLE_PING = COMPANY_ROLE_PINGS[companyKey] || COMPANY_ROLE_PINGS['Cirkle Development'];
       
-      if (WEBHOOK_URL) {
+      if (CHANNEL_ID) {
         try {
           const embed = {
             title: `🆕 New Application: ${job.title}`,
             color: 0x007AFF,
+            description: `${ROLE_PING}`,
             fields: [
               { name: '📋 Position', value: job.title, inline: true },
               { name: '🏢 Company', value: job.company, inline: true },
               { name: '📅 Applied', value: new Date(app.appliedDate).toLocaleString(), inline: false },
             ],
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            footer: { text: '🛡️ SENTINEL Security Protected' }
           };
           
           // Add applicant info
@@ -845,16 +847,20 @@ async function submitApplication(jobId) {
           
           embed.fields.push({ name: '🔑 Candidate PIN', value: `\`${app.pin}\``, inline: false });
           
-          await fetch(WEBHOOK_URL, {
+          // Send via secure bot channel posting endpoint
+          await fetch(`${BACKEND_URL}/api/discord/channel-message`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
+              channelId: CHANNEL_ID,
               content: ROLE_PING,
               embeds: [embed] 
             })
           });
+          
+          console.log('[SENTINEL] ✅ Application notification sent via secure channel');
         } catch (e) {
-          console.log('Webhook failed:', e);
+          console.error('[SENTINEL] ❌ Channel notification failed:', e);
         }
       }
       
