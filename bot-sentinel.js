@@ -2,6 +2,9 @@
 // Version 2.0.0 - Bot-based channel posting (replaces webhooks)
 // All credentials loaded from environment variables
 
+// Load environment variables
+require('dotenv').config();
+
 // SENTINEL Security Check
 if (process.env.DISABLE_BOTS === 'true' || process.env.SUSPEND_BOTS === 'true') {
   console.log('[SENTINEL] Bot suspended via environment flag (DISABLE_BOTS/SUSPEND_BOTS). Exiting.');
