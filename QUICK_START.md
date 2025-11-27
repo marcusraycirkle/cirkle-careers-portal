@@ -29,7 +29,6 @@ wrangler secret put FIREBASE_DATABASE_URL
 
 wrangler secret put FIREBASE_PROJECT_ID
 # When prompted, enter your Firebase project ID
-# When prompted, enter: cirkle-careers
 
 # Set Discord bot token (same as in .env)
 wrangler secret put DISCORD_BOT_TOKEN
