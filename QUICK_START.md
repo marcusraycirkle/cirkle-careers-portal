@@ -22,12 +22,13 @@ EOF
 ```bash
 # Set Firebase credentials
 wrangler secret put FIREBASE_API_KEY
-# When prompted, enter: AIzaSyD00-6EWTN4RsskroJ8G0FOHZzbSIYTy4s
+# When prompted, enter your Firebase API key
 
 wrangler secret put FIREBASE_DATABASE_URL
-# When prompted, enter: https://cirkle-careers-default-rtdb.europe-west1.firebasedatabase.app
+# When prompted, enter your Firebase database URL
 
 wrangler secret put FIREBASE_PROJECT_ID
+# When prompted, enter your Firebase project ID
 # When prompted, enter: cirkle-careers
 
 # Set Discord bot token (same as in .env)

@@ -31,10 +31,10 @@ cd /path/to/cirkle-careers-portal
 
 # Set Firebase credentials
 npx wrangler secret put FIREBASE_API_KEY
-# Paste: AIzaSyD00-6EWTN4RsskroJ8G0FOHZzbSIYTy4s
+# Paste your Firebase API key when prompted
 
-npx wrangler secret put FIREBASE_DATABASE_URL
-# Paste: https://cirkle-careers-default-rtdb.europe-west1.firebasedatabase.app
+wrangler secret put FIREBASE_DATABASE_URL
+# Paste your Firebase database URL when prompted
 
 npx wrangler secret put FIREBASE_PROJECT_ID
 # Paste: cirkle-careers
