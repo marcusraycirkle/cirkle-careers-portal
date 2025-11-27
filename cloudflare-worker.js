@@ -412,6 +412,48 @@ export default {
         }));
       }
 
+      // Get all processed applications
+      if (path === '/api/processed' && request.method === 'GET') {
+        const response = await fetch(`${FIREBASE_CONFIG.databaseURL}/processed.json`);
+        const data = await response.json();
+        return addSecurityHeaders(new Response(JSON.stringify(data), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      // Create processed application
+      if (path === '/api/processed' && request.method === 'POST') {
+        const body = await request.json();
+        const appId = body.id?.toString() || Date.now().toString();
+        
+        const response = await fetch(
+          `${FIREBASE_CONFIG.databaseURL}/processed/${appId}.json`,
+          {
+            method: 'PUT',
+            body: JSON.stringify(body)
+          }
+        );
+        
+        const data = await response.json();
+        return addSecurityHeaders(new Response(JSON.stringify(data), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      // Delete processed application
+      if (path.startsWith('/api/processed/') && request.method === 'DELETE') {
+        const appId = path.split('/')[3];
+        
+        await fetch(
+          `${FIREBASE_CONFIG.databaseURL}/processed/${appId}.json`,
+          { method: 'DELETE' }
+        );
+        
+        return addSecurityHeaders(new Response(JSON.stringify({ success: true }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
       // Get all chats
       if (path === '/api/chats' && request.method === 'GET') {
         const response = await fetch(`${FIREBASE_CONFIG.databaseURL}/chats.json`);
