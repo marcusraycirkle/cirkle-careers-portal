@@ -863,6 +863,53 @@ async function submitApplication(jobId) {
           console.error('[SENTINEL] ❌ Channel notification failed:', e);
         }
       }
+
+      // 🔔 Send DM notifications to assigned employers
+      if (job.assigned && Array.isArray(job.assigned)) {
+        for (const employerName of job.assigned) {
+          const employer = employers.find(e => e.name === employerName);
+          if (employer && employer.id) {
+            try {
+              const companyLogo = getCompanyLogo(companyKey);
+              
+              await fetch(`${BACKEND_URL}/api/discord/dm`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: employer.id,
+                  message: {
+                    embeds: [{
+                      title: '🔔 New Application Assigned to You',
+                      description: `A new candidate has applied for **${job.title}** at **${job.company}**`,
+                      color: 0x5856D6,
+                      thumbnail: { url: companyLogo },
+                      fields: [
+                        { name: '👤 Applicant', value: app.data.name || 'N/A', inline: true },
+                        { name: '📋 Position', value: job.title, inline: true },
+                        { name: '🏢 Company', value: job.company, inline: true },
+                        { name: '💬 Discord', value: app.data.discord || 'N/A', inline: true },
+                        { name: '📧 Email', value: app.data.email || 'N/A', inline: true },
+                        { name: '🎮 Roblox', value: app.data.roblox || 'N/A', inline: true },
+                        { name: '🔑 PIN', value: `\`${app.pin}\``, inline: false },
+                        { name: '📅 Applied', value: new Date(app.appliedDate).toLocaleString(), inline: false }
+                      ],
+                      footer: {
+                        text: `Review this application in the dashboard • SENTINEL Security`,
+                        icon_url: 'https://cdn.discordapp.com/attachments/1419317839269073016/1433880859022200872/allCareers.png'
+                      },
+                      timestamp: new Date().toISOString()
+                    }]
+                  }
+                })
+              });
+              
+              console.log(`[SENTINEL] ✅ DM notification sent to ${employerName} (${employer.id})`);
+            } catch (dmError) {
+              console.error(`[SENTINEL] ❌ Failed to DM ${employerName}:`, dmError);
+            }
+          }
+        }
+      }
       
       playSuccessSound();
       showSuccessScreen('Successfully Applied!', app.pin, true);
