@@ -19,6 +19,12 @@ const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CIRKLE_CHANNEL_ID = process.env.CIRKLE_CHANNEL_ID || '1364978443292377211';
 const AER_LINGUS_CHANNEL_ID = process.env.AER_LINGUS_CHANNEL_ID || '1395759805305716848';
 
+// Debug logging
+console.log('[SENTINEL] 🔍 Environment check:');
+console.log(`[SENTINEL]   - Token exists: ${!!DISCORD_BOT_TOKEN}`);
+console.log(`[SENTINEL]   - Token length: ${DISCORD_BOT_TOKEN ? DISCORD_BOT_TOKEN.length : 0}`);
+console.log(`[SENTINEL]   - Token starts with: ${DISCORD_BOT_TOKEN ? DISCORD_BOT_TOKEN.substring(0, 10) + '...' : 'N/A'}`);
+
 // Validation
 if (!DISCORD_BOT_TOKEN || DISCORD_BOT_TOKEN === 'YOUR_DISCORD_BOT_TOKEN_HERE') {
   console.error('[SENTINEL] ❌ Discord bot token not configured. Set DISCORD_BOT_TOKEN environment variable.');
