@@ -1,6 +1,9 @@
 // Bot Status Updater - Keeps the allCareers bot online with rotating status
 // This script needs to run continuously (e.g., on a server or Railway)
 
+// Load environment variables
+require('dotenv').config();
+
 // If you need to suspend bots immediately, set env `DISABLE_BOTS=true` or `SUSPEND_BOTS=true`.
 if (process.env.DISABLE_BOTS === 'true' || process.env.SUSPEND_BOTS === 'true') {
   console.log('Bot suspended via environment flag (DISABLE_BOTS/SUSPEND_BOTS). Exiting.');
@@ -9,6 +12,11 @@ if (process.env.DISABLE_BOTS === 'true' || process.env.SUSPEND_BOTS === 'true') 
 
 // Get token from environment variable (set in Railway) or fallback to placeholder
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || 'YOUR_DISCORD_BOT_TOKEN_HERE';
+
+if (!DISCORD_BOT_TOKEN || DISCORD_BOT_TOKEN === 'YOUR_DISCORD_BOT_TOKEN_HERE') {
+  console.error('❌ DISCORD_BOT_TOKEN not set. Please set it in environment variables.');
+  process.exit(1);
+}
 
 const statuses = [
   { name: '🧐 Reading Applications', type: 3 }, // Type 3 = Watching
@@ -29,15 +37,33 @@ function connectBot() {
   let sequence = null;
 
   async function connect() {
-    // Get Gateway URL
-    const gatewayResponse = await fetch('https://discord.com/api/v10/gateway/bot', {
-      headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
-    });
-    const gatewayData = await gatewayResponse.json();
-    const gatewayUrl = gatewayData.url;
+    try {
+      // Get Gateway URL
+      console.log('Fetching Discord Gateway URL...');
+      const gatewayResponse = await fetch('https://discord.com/api/v10/gateway/bot', {
+        headers: { 'Authorization': `Bot ${DISCORD_BOT_TOKEN}` }
+      });
+      
+      if (!gatewayResponse.ok) {
+        const error = await gatewayResponse.text();
+        throw new Error(`Failed to get gateway: ${gatewayResponse.status} - ${error}`);
+      }
+      
+      const gatewayData = await gatewayResponse.json();
+      const gatewayUrl = gatewayData.url;
+      
+      if (!gatewayUrl) {
+        throw new Error('Gateway URL is undefined. Check bot token.');
+      }
 
-    console.log('Connecting to Discord Gateway...');
-    ws = new WebSocket(`${gatewayUrl}?v=10&encoding=json`);
+      console.log('Connecting to Discord Gateway...');
+      ws = new WebSocket(`${gatewayUrl}?v=10&encoding=json`);
+    } catch (error) {
+      console.error('❌ Connection error:', error.message);
+      console.log('Retrying in 5 seconds...');
+      setTimeout(connect, 5000);
+      return;
+    }
 
     ws.on('open', () => {
       console.log('✅ Connected to Discord Gateway');
