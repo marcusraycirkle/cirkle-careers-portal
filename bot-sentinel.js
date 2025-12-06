@@ -65,6 +65,38 @@ client.once('ready', () => {
   setInterval(updateStatus, 15000);
 });
 
+// Handle interactions (select menus, buttons, etc.)
+client.on('interactionCreate', async (interaction) => {
+  try {
+    if (!interaction.isStringSelectMenu()) return;
+
+    console.log(`[SENTINEL] 🎯 Select menu interaction: ${interaction.customId} by ${interaction.user.tag}`);
+
+    // Acknowledge the interaction immediately (required within 3 seconds)
+    await interaction.deferUpdate();
+
+    // Handle different select menu types
+    // This is a placeholder - you'll need to implement the actual logic
+    // based on what your select menus are supposed to do
+    
+    console.log(`[SENTINEL] ✅ Interaction handled for ${interaction.customId}`);
+    
+  } catch (error) {
+    console.error('[SENTINEL] ❌ Error handling interaction:', error);
+    
+    // Try to respond with an error message if possible
+    try {
+      if (interaction.deferred) {
+        await interaction.editReply({ content: '❌ An error occurred processing your selection.', ephemeral: true });
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: '❌ An error occurred processing your selection.', ephemeral: true });
+      }
+    } catch (replyError) {
+      console.error('[SENTINEL] ❌ Could not send error message:', replyError);
+    }
+  }
+});
+
 // Update bot status
 function updateStatus() {
   const status = statuses[currentStatusIndex];
