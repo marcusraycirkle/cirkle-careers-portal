@@ -347,5 +347,31 @@ window.employerSuite = {
   tabs: employerTabs
 };
 
+// Initialize function for integration
+window.initializeEmployerSuite = function(container, user) {
+  console.log('[Employer Suite] Initializing in embedded mode...');
+  
+  // Clear container
+  container.innerHTML = '';
+  
+  // Add loading-container and main-container
+  container.innerHTML = `
+    <div id="loading-container"></div>
+    <div id="main-container" style="display:none;"></div>
+  `;
+  
+  // Create and initialize app
+  const app = new EmployerSuiteApp();
+  
+  // If user is already authenticated from main portal, skip auth
+  if (user) {
+    employerAuth.saveSession('existing', user);
+  }
+  
+  app.init();
+  
+  return app;
+};
+
 console.log('%c🎉 Employer Suite v1.0.0 ', 'background: #007aff; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
 console.log('%cProtected by SENTINEL Security™', 'color: #34c759; font-weight: bold;');
