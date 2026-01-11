@@ -93,12 +93,10 @@ export default {
 
     // Employer credentials - should be stored in env or KV
     const USERS = env.USERS ? JSON.parse(env.USERS) : {
-      '926568979747713095': { pin: '071025', role: 'Cirkle Dev | Assistant Director', name: 'Teejay Everil', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433587280135848017/image.png' },
+      '926568979747713095': { pin: '071025', role: 'Cirkle Dev | Associate Director', name: 'Teejay Everil', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433587280135848017/image.png' },
       '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Board of Directors', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png' },
       '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Managing Director', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
-      '1028181169721839616': { pin: '227102', role: ' Aer Lingus | Recruiter', name: 'Magic', pfp: 'https://media.discordapp.net/attachments/1404157487799861332/1433750219119661056/noFilter.png' },
-      '1246933891613200467': { pin: '421942', role: ' Aer Lingus | CEO', name: 'Carter', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png' },
-      '146763000701911040': { pin: '191125', role: ' Cirkle Dev | Finance Departement', name: 'Yassine Fried', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
+      '146763000701911040': { pin: '191125', role: ' Cirkle Dev | Associate Director', name: 'Appler Smith', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
     };
 
     // Discord Bot Token from environment (NEVER expose to client)
@@ -482,12 +480,299 @@ export default {
         }));
       }
 
+      // ==========================
+      // EMPLOYER SUITE ENDPOINTS
+      // ==========================
+      
+      // Employer Suite Discord OAuth callback
+      if (path === '/api/employersuit/auth/discord' && request.method === 'POST') {
+        const { code, redirect_uri } = await request.json();
+        
+        try {
+          // Exchange code for access token with Discord
+          const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              client_id: env.DISCORD_CLIENT_ID,
+              client_secret: env.DISCORD_CLIENT_SECRET,
+              grant_type: 'authorization_code',
+              code: code,
+              redirect_uri: redirect_uri
+            })
+          });
+          
+          const tokenData = await tokenResponse.json();
+          
+          if (tokenData.access_token) {
+            // Get user info from Discord
+            const userResponse = await fetch('https://discord.com/api/users/@me', {
+              headers: {
+                'Authorization': `Bearer ${tokenData.access_token}`
+              }
+            });
+            
+            const userData = await userResponse.json();
+            
+            return addSecurityHeaders(new Response(JSON.stringify({
+              success: true,
+              access_token: tokenData.access_token,
+              user: userData
+            }), {
+              headers: { 'Content-Type': 'application/json' }
+            }));
+          }
+        } catch (error) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: false,
+            error: error.message
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+      }
+
+      // File storage endpoints (proxied to storage server)
+      if (path === '/api/employersuit/files/upload' && request.method === 'POST') {
+        const storageServerUrl = env.STORAGE_SERVER_URL;
+        const storageApiKey = env.STORAGE_API_KEY;
+        
+        if (!storageServerUrl || !storageApiKey) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            error: 'Storage server not configured'
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+        
+        // Forward the request to storage server
+        const formData = await request.formData();
+        const userId = formData.get('userId');
+        
+        const storageResponse = await fetch(`${storageServerUrl}/api/files/upload`, {
+          method: 'POST',
+          headers: {
+            'X-API-Key': storageApiKey,
+            'X-User-Id': userId
+          },
+          body: formData
+        });
+        
+        const result = await storageResponse.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify(result), {
+          status: storageResponse.status,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      if (path === '/api/employersuit/files/list' && request.method === 'POST') {
+        const { userId } = await request.json();
+        const storageServerUrl = env.STORAGE_SERVER_URL;
+        const storageApiKey = env.STORAGE_API_KEY;
+        
+        if (!storageServerUrl || !storageApiKey) {
+          return addSecurityHeaders(new Response(JSON.stringify({ files: [] }), {
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+        
+        const storageResponse = await fetch(`${storageServerUrl}/api/files/list?userId=${userId}`, {
+          headers: {
+            'X-API-Key': storageApiKey
+          }
+        });
+        
+        const result = await storageResponse.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      if (path === '/api/employersuit/files/storage-info' && request.method === 'POST') {
+        const { userId } = await request.json();
+        const storageServerUrl = env.STORAGE_SERVER_URL;
+        const storageApiKey = env.STORAGE_API_KEY;
+        
+        if (!storageServerUrl || !storageApiKey) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            used: 0,
+            max: 10737418240,
+            available: 10737418240,
+            percentage: 0
+          }), {
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+        
+        const storageResponse = await fetch(`${storageServerUrl}/api/storage/info?userId=${userId}`, {
+          headers: {
+            'X-API-Key': storageApiKey
+          }
+        });
+        
+        const result = await storageResponse.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      
+      // File delete endpoint
+      if (path.startsWith('/api/employersuit/files/delete/') && request.method === 'DELETE') {
+        const pathParts = path.split('/');
+        const userId = pathParts[5];
+        const filename = pathParts[6];
+        const storageServerUrl = env.STORAGE_SERVER_URL;
+        const storageApiKey = env.STORAGE_API_KEY;
+        
+        if (!storageServerUrl || !storageApiKey) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            error: 'Storage server not configured'
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+        
+        const storageResponse = await fetch(`${storageServerUrl}/api/files/delete/${userId}/${filename}`, {
+          method: 'DELETE',
+          headers: {
+            'X-API-Key': storageApiKey
+          }
+        });
+        
+        const result = await storageResponse.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify(result), {
+          status: storageResponse.status,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      
+      // File download endpoint
+      if (path.startsWith('/api/employersuit/files/download/') && request.method === 'GET') {
+        const pathParts = path.split('/');
+        const userId = pathParts[5];
+        const filename = pathParts[6];
+        const storageServerUrl = env.STORAGE_SERVER_URL;
+        const storageApiKey = env.STORAGE_API_KEY;
+        
+        if (!storageServerUrl || !storageApiKey) {
+          return addSecurityHeaders(new Response('Storage server not configured', {
+            status: 500
+          }));
+        }
+        
+        const storageResponse = await fetch(`${storageServerUrl}/api/files/download/${userId}/${filename}`, {
+          headers: {
+            'X-API-Key': storageApiKey
+          }
+        });
+        
+        // Forward the file stream
+        return new Response(storageResponse.body, {
+          status: storageResponse.status,
+          headers: storageResponse.headers
+        });
+      }
+      
+      // Notes endpoints (using Firebase)
+      if (path === '/api/employersuit/notes/list' && request.method === 'POST') {
+        const { userId } = await request.json();
+        
+        const notesData = await fetch(`${FIREBASE_CONFIG.databaseURL}/employersuit/notes/${userId}.json`);
+        const notes = await notesData.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify({
+          success: true,
+          notes: notes || []
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      if (path === '/api/employersuit/notes/save' && request.method === 'POST') {
+        const { userId, noteId, title, content, lastModified } = await request.json();
+        
+        const noteData = { id: noteId, title, content, lastModified };
+        
+        await fetch(
+          `${FIREBASE_CONFIG.databaseURL}/employersuit/notes/${userId}/${noteId}.json`,
+          {
+            method: 'PUT',
+            body: JSON.stringify(noteData)
+          }
+        );
+        
+        return addSecurityHeaders(new Response(JSON.stringify({
+          success: true,
+          note: noteData
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      // Calendar endpoints
+      if (path === '/api/employersuit/calendar/events' && request.method === 'POST') {
+        const { userId, startDate, endDate, type } = await request.json();
+        
+        const eventsData = await fetch(`${FIREBASE_CONFIG.databaseURL}/employersuit/calendar/${userId}.json`);
+        const events = await eventsData.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify({
+          success: true,
+          events: events || []
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      if (path === '/api/employersuit/calendar/create' && request.method === 'POST') {
+        const eventData = await request.json();
+        const eventId = Date.now().toString();
+        
+        await fetch(
+          `${FIREBASE_CONFIG.databaseURL}/employersuit/calendar/${eventData.createdBy}/${eventId}.json`,
+          {
+            method: 'PUT',
+            body: JSON.stringify({ ...eventData, id: eventId })
+          }
+        );
+        
+        return addSecurityHeaders(new Response(JSON.stringify({
+          success: true,
+          event: { ...eventData, id: eventId }
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      // Template endpoints
+      if (path === '/api/employersuit/templates/list' && request.method === 'POST') {
+        const templatesData = await fetch(`${FIREBASE_CONFIG.databaseURL}/employersuit/templates.json`);
+        const templates = await templatesData.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify({
+          success: true,
+          templates: templates || []
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
       // Health check endpoint
       if (path === '/api/health' && request.method === 'GET') {
         return addSecurityHeaders(new Response(JSON.stringify({ 
           status: 'healthy',
           sentinel: 'active',
           version: '2.0.0',
+          employerSuite: 'enabled',
           timestamp: new Date().toISOString()
         }), {
           headers: { 'Content-Type': 'application/json' }

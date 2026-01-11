@@ -6,7 +6,7 @@ const NAME_UPDATES = {
   'Marcus': 'Marcus Ray',
   'Teejay': 'Teejay Everil',
   'Sam': 'Sam Caster',
-  'Chase Johnson': 'Cos Boonyasak'
+  'Appler': 'Appler Smith'
 };
 
 async function updateJobAssignments() {

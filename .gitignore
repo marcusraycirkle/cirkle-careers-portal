@@ -5,6 +5,7 @@
 .env
 .env.local
 .env.production
+storage-server.env
 
 # Backup/old files with credentials
 cloudflare-worker.js.backup
@@ -18,6 +19,7 @@ node_modules/
 *.log
 npm-debug.log*
 pm2.log
+/var/employersuit/logs/*.log
 
 # OS files
 .DS_Store
