@@ -178,8 +178,9 @@ class EmployerSuiteTabs {
   // ============================
   
   async renderFiles() {
-    const storageInfo = await employerAPI.getStorageInfo();
-    const files = await employerAPI.getFiles();
+    // Mock data since storage server not set up yet
+    const storageInfo = { used: 0, limit: 10737418240 }; // 10GB limit
+    const files = { files: [] };
 
     const usedGB = (storageInfo.used / (1024 * 1024 * 1024)).toFixed(2);
     const totalGB = storageInfo.limit / (1024 * 1024 * 1024);
@@ -190,43 +191,32 @@ class EmployerSuiteTabs {
         <div class="tab-header">
           <h2>📁 My Files</h2>
           <div class="tab-actions">
-            <button class="btn btn-primary" onclick="employerTabs.uploadFile()">
-              ⬆️ Upload File
-            </button>
-            <button class="btn btn-secondary" onclick="employerTabs.createFolder()">
-              📁 New Folder
-            </button>
             <button class="btn btn-secondary" onclick="employerTabs.navigateToTab('home')">
               ← Back
             </button>
           </div>
         </div>
 
+        <!-- Warning Banner -->
+        <div class="alert alert-warning" style="background:#fff3cd; border:1px solid #ffc107; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
+          <strong>⚠️ Storage Server Not Set Up</strong>
+          <p style="margin:0.5rem 0 0 0;">File storage is not yet configured. Upload and download functionality will be available once the storage server is deployed.</p>
+        </div>
+
         <!-- Storage Info -->
-        <div class="storage-info mb-4">
-          <div class="storage-header">
+        <div class="storage-info mb-4" style="background:#f8f9fa; padding:1rem; border-radius:8px;">
+          <div class="storage-header" style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
             <span>Storage Used: ${usedGB} GB / ${totalGB} GB</span>
             <span>${percentage}%</span>
           </div>
-          <div class="storage-bar">
-            <div class="storage-progress" style="width: ${percentage}%"></div>
+          <div class="storage-bar" style="background:#dee2e6; height:8px; border-radius:4px; overflow:hidden;">
+            <div class="storage-progress" style="width: ${percentage}%; height:100%; background:#007aff;"></div>
           </div>
         </div>
 
         <!-- File Browser -->
         <div class="files-container">
-          <div class="files-toolbar">
-            <div class="breadcrumb">
-              <span onclick="employerTabs.navigateToFolder('root')">Home</span>
-              <span id="breadcrumb-path"></span>
-            </div>
-            <div class="view-options">
-              <button class="view-btn active" data-view="grid">⊞</button>
-              <button class="view-btn" data-view="list">☰</button>
-            </div>
-          </div>
-
-          <div id="files-grid" class="files-grid">
+          <div id="files-grid" class="files-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:1rem;">
             ${this.renderFilesGrid(files.files || [])}
           </div>
         </div>
@@ -237,10 +227,10 @@ class EmployerSuiteTabs {
   renderFilesGrid(files) {
     if (files.length === 0) {
       return `
-        <div class="empty-state">
-          <div class="empty-icon">📁</div>
+        <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
+          <div class="empty-icon" style="font-size:4rem; margin-bottom:1rem;">📁</div>
           <h3>No files yet</h3>
-          <p>Upload your first file to get started</p>
+          <p>Your files will appear here once the storage server is configured.</p>
         </div>
       `;
     }
@@ -316,34 +306,38 @@ class EmployerSuiteTabs {
   // ============================
   
   async renderNotepad() {
-    const notes = await employerAPI.getNotes();
+    // Mock data since backend not connected yet
+    const notes = { notes: [] };
 
     return `
       <div class="tab-content">
         <div class="tab-header">
           <h2>📝 Notepad</h2>
           <div class="tab-actions">
-            <button class="btn btn-primary" onclick="employerTabs.createNewNote()">
-              ➕ New Note
-            </button>
             <button class="btn btn-secondary" onclick="employerTabs.navigateToTab('home')">
               ← Back
             </button>
           </div>
         </div>
 
-        <div class="notepad-container">
-          <div class="notes-sidebar">
+        <!-- Warning Banner -->
+        <div class="alert alert-warning" style="background:#fff3cd; border:1px solid #ffc107; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
+          <strong>⚠️ Notes Don't Save Yet</strong>
+          <p style="margin:0.5rem 0 0 0;">The notepad backend is not yet connected. Your notes will not be saved. This feature will be available once the storage server is deployed.</p>
+        </div>
+
+        <div class="notepad-container" style="display:grid; grid-template-columns:250px 1fr; gap:1.5rem; min-height:500px;">
+          <div class="notes-sidebar" style="background:#f8f9fa; border-radius:8px; padding:1rem;">
             <div class="notes-list">
               ${this.renderNotesList(notes.notes || [])}
             </div>
           </div>
 
           <div class="note-editor" id="note-editor">
-            <div class="empty-state">
-              <div class="empty-icon">📝</div>
+            <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
+              <div class="empty-icon" style="font-size:4rem; margin-bottom:1rem;">📝</div>
               <h3>No note selected</h3>
-              <p>Select a note from the list or create a new one</p>
+              <p>Notes functionality will be available once backend is configured.</p>
             </div>
           </div>
         </div>
@@ -353,7 +347,7 @@ class EmployerSuiteTabs {
 
   renderNotesList(notes) {
     if (notes.length === 0) {
-      return '<div class="empty-notes">No notes yet</div>';
+      return '<div class="empty-notes" style="padding:2rem; text-align:center; color:#6e6e73;">No notes yet</div>';
     }
 
     return notes.map(note => `
@@ -444,57 +438,46 @@ class EmployerSuiteTabs {
         <div class="tab-header">
           <h2>📅 Schedule & Calendar</h2>
           <div class="tab-actions">
-            <button class="btn btn-primary" onclick="employerTabs.createEvent()">
-              ➕ Add Event
-            </button>
-            <button class="btn btn-secondary" onclick="employerTabs.scheduleList.toggle('shared')">
-              ${employerTabs.showingSharedCalendar ? '👤 My Calendar' : '👥 Shared Calendar'}
-            </button>
             <button class="btn btn-secondary" onclick="employerTabs.navigateToTab('home')">
               ← Back
             </button>
           </div>
         </div>
 
-        <div class="calendar-container">
-          <div class="calendar-sidebar">
-            <div class="calendar-mini" id="calendar-mini"></div>
-            
-            <div class="calendar-legend">
-              <h4>Event Types</h4>
-              <div class="legend-item">
-                <span class="legend-color" style="background: var(--success)"></span>
-                <span>Common</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color" style="background: var(--warning)"></span>
-                <span>Important</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color" style="background: #ff9500"></span>
-                <span>High Priority</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color" style="background: var(--danger)"></span>
-                <span>Urgent</span>
-              </div>
+        <div class="calendar-container" style="display:grid; grid-template-columns:300px 1fr; gap:1.5rem;">
+          <div class="calendar-sidebar" style="background:#f8f9fa; border-radius:8px; padding:1.5rem;">
+            <h4 style="margin-bottom:1rem;">Event Types</h4>
+            <div class="legend-item" style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+              <span class="legend-color" style="width:16px; height:16px; border-radius:4px; background:#34c759;"></span>
+              <span>Common</span>
+            </div>
+            <div class="legend-item" style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+              <span class="legend-color" style="width:16px; height:16px; border-radius:4px; background:#ffcc00;"></span>
+              <span>Important</span>
+            </div>
+            <div class="legend-item" style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+              <span class="legend-color" style="width:16px; height:16px; border-radius:4px; background:#ff9500;"></span>
+              <span>High Priority</span>
+            </div>
+            <div class="legend-item" style="display:flex; align-items:center; gap:0.5rem;">
+              <span class="legend-color" style="width:16px; height:16px; border-radius:4px; background:#ff3b30;"></span>
+              <span>Urgent</span>
             </div>
           </div>
 
-          <div class="calendar-main">
-            <div class="calendar-header">
-              <button onclick="employerTabs.calendar.previousMonth()">←</button>
-              <h3 id="calendar-month-year"></h3>
-              <button onclick="employerTabs.calendar.nextMonth()">→</button>
+          <div class="calendar-main" style="background:white; border-radius:8px; padding:1.5rem;">
+            <div class="calendar-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+              <button class="btn btn-secondary" onclick="alert('Calendar navigation coming soon!')">←</button>
+              <h3 id="calendar-month-year" style="margin:0;">${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
+              <button class="btn btn-secondary" onclick="alert('Calendar navigation coming soon!')">→</button>
             </div>
             
-            <div id="calendar-grid" class="calendar-grid"></div>
+            <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
+              <div class="empty-icon" style="font-size:4rem; margin-bottom:1rem;">📅</div>
+              <h3>Calendar View</h3>
+              <p>Full calendar functionality will be available once backend is connected.</p>
+            </div>
           </div>
-        </div>
-
-        <div class="upcoming-events mt-4">
-          <h3>Upcoming Events</h3>
-          <div id="upcoming-events-list"></div>
         </div>
       </div>
     `;
@@ -623,14 +606,26 @@ class EmployerSuiteTabs {
   // ============================
   
   async renderDatabase() {
-    const staff = await employerAPI.getAllStaff(true);
+    let staff = { count: 0, staff: [] };
+    let errorMessage = null;
+    
+    try {
+      staff = await employerAPI.getAllStaff(true);
+      if (!staff || staff.error) {
+        errorMessage = staff?.error || 'Failed to load staff data';
+        staff = { count: 0, staff: [] };
+      }
+    } catch (error) {
+      console.error('Staff database error:', error);
+      errorMessage = 'Unable to connect to staff database';
+    }
 
     return `
       <div class="tab-content">
         <div class="tab-header">
           <h2>💾 Staff Database</h2>
           <div class="tab-actions">
-            <input type="text" id="staff-search" placeholder="Search staff..." class="search-input">
+            <input type="text" id="staff-search" placeholder="Search staff..." class="search-input" style="padding:0.6rem 1rem; border:1px solid #d1d1d6; border-radius:8px; width:250px;">
             <button class="btn btn-primary" onclick="employerTabs.syncDatabase()">
               🔄 Sync
             </button>
@@ -640,11 +635,18 @@ class EmployerSuiteTabs {
           </div>
         </div>
 
-        <div class="database-stats mb-4">
+        ${errorMessage ? `
+          <div class="alert alert-info" style="background:#d1ecf1; border:1px solid #0dcaf0; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
+            <strong>ℹ️ ${errorMessage}</strong>
+            <p style="margin:0.5rem 0 0 0;">The staff database will sync with the TimeClock backend when available.</p>
+          </div>
+        ` : ''}
+
+        <div class="database-stats mb-4" style="margin-bottom:1.5rem;">
           ${this.renderDatabaseStats(staff)}
         </div>
 
-        <div class="staff-grid">
+        <div class="staff-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:1.5rem;">
           ${this.renderStaffGrid(staff.staff || [])}
         </div>
       </div>
@@ -677,10 +679,10 @@ class EmployerSuiteTabs {
   renderStaffGrid(staff) {
     if (staff.length === 0) {
       return `
-        <div class="empty-state">
-          <div class="empty-icon">💾</div>
+        <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73; grid-column:1/-1;">
+          <div class="empty-icon" style="font-size:4rem; margin-bottom:1rem;">💾</div>
           <h3>No staff members found</h3>
-          <p>Sync the database to load staff information</p>
+          <p>Click Sync to load staff information from TimeClock</p>
         </div>
       `;
     }
@@ -835,6 +837,16 @@ class EmployerSuiteTabs {
       showNotification('User dismissed successfully', 'success');
       hideModal();
       this.navigateToTab('database');
+    }
+  }
+
+  async syncDatabase() {
+    showNotification('Syncing staff database...', 'info');
+    try {
+      await this.navigateToTab('database');
+      showNotification('Database synced successfully', 'success');
+    } catch (error) {
+      showNotification('Failed to sync database', 'error');
     }
   }
 

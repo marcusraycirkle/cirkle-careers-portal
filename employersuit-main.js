@@ -62,8 +62,11 @@ class EmployerSuiteApp {
     
     const user = employerAuth.getCurrentUser();
     if (user) {
-      const userName = user.global_name || user.username || 'User';
-      document.getElementById('welcome-user').textContent = `Welcome back, ${userName}!`;
+      const userName = user.global_name || user.username || user.name || 'User';
+      const welcomeUser = document.getElementById('welcome-user');
+      if (welcomeUser) {
+        welcomeUser.textContent = `Welcome back, ${userName}!`;
+      }
     }
     
     let progress = 0;
@@ -187,11 +190,24 @@ class EmployerSuiteApp {
     const userAvatar = document.getElementById('user-avatar');
     const userName = document.getElementById('user-name');
     
-    if (userAvatar && this.currentUser && this.currentUser.id && this.currentUser.avatar) {
-      userAvatar.src = `https://cdn.discordapp.com/avatars/${this.currentUser.id}/${this.currentUser.avatar}.png`;
+    if (userAvatar && this.currentUser) {
+      // Handle both Discord OAuth user and employer portal user
+      const discordId = this.currentUser.id || this.currentUser.discordId;
+      const avatarHash = this.currentUser.avatar;
+      
+      if (discordId && avatarHash) {
+        userAvatar.src = `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.png`;
+      } else if (this.currentUser.pfp) {
+        // Fallback to employer portal pfp
+        userAvatar.src = this.currentUser.pfp;
+      } else {
+        // Fallback to UI Avatars
+        const displayName = this.currentUser.username || this.currentUser.name || 'User';
+        userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=667eea&color=fff&size=128`;
+      }
     }
     if (userName && this.currentUser) {
-      userName.textContent = this.currentUser.username || this.currentUser.name || 'User';
+      userName.textContent = this.currentUser.username || this.currentUser.name || this.currentUser.global_name || 'User';
     }
 
     // Wait for DOM to be ready before loading content
@@ -466,7 +482,29 @@ window.initializeEmployerSuite = function(container, user) {
   // If user is already authenticated from main portal, use that session
   if (user) {
     console.log('[Employer Suite] Using existing user session:', user);
-    employerAuth.saveSession('existing', user);
+    
+    // Enhance user object with Discord data if discordId is available
+    if (user.discordId && !user.id) {
+      // Fetch Discord user data to get avatar
+      fetch(`https://discord.com/api/v10/users/${user.discordId}`, {
+        headers: {
+          'Authorization': `Bot ${window.DISCORD_BOT_TOKEN || ''}`
+        }
+      })
+      .then(res => res.json())
+      .then(discordUser => {
+        user.id = discordUser.id;
+        user.avatar = discordUser.avatar;
+        user.username = user.username || discordUser.username;
+        employerAuth.saveSession('existing', user);
+      })
+      .catch(err => {
+        console.log('[Employer Suite] Could not fetch Discord data, using fallback');
+        employerAuth.saveSession('existing', user);
+      });
+    } else {
+      employerAuth.saveSession('existing', user);
+    }
   }
   
   app.init();
