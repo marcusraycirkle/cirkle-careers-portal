@@ -436,7 +436,6 @@ window.initializeEmployerSuite = function(container, user) {
       <!-- Top Navigation -->
       <nav class="top-nav" style="background:white; border-bottom:1px solid #e5e5ea; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center;">
         <div class="nav-left" style="display:flex; align-items:center; gap:1rem;">
-          <img src="https://cdn.discordapp.com/attachments/1419317839269073016/1433880859022200872/allCareers.png" alt="AllCareers" class="nav-logo" style="height:40px;">
           <h1 class="nav-title" style="font-size:1.5rem; font-weight:700; margin:0;">Employer Suite</h1>
         </div>
         <div class="nav-right" style="display:flex; align-items:center; gap:1rem;">

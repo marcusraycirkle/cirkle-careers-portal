@@ -16,7 +16,8 @@ class EmployerSuiteTabs {
   // ============================
   
   renderHome() {
-    const firstName = this.currentUser.username.split(' ')[0];
+    const userName = this.currentUser?.username || this.currentUser?.name || this.currentUser?.global_name || 'User';
+    const firstName = userName.split(' ')[0];
     
     return `
       <div class="tab-content">
