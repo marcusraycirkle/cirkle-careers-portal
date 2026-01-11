@@ -1096,7 +1096,18 @@ function renderEmployerSubPage(sub) {
     case 'dashboard':
       const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
       subContent = `
-        <h2 style="font-size:2rem; font-weight:700; margin-bottom:2rem;">Dashboard</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+          <h2 style="font-size:2rem; font-weight:700; margin:0;">Dashboard</h2>
+          <a href="employersuit.html" target="_blank" style="text-decoration:none;">
+            <button style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; font-weight:700; padding:1rem 2rem; font-size:1.1rem; border:none; border-radius:12px; cursor:pointer; box-shadow:0 8px 20px rgba(102, 126, 234, 0.4); transition:all 0.3s; display:flex; align-items:center; gap:0.75rem;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="white" stroke-width="2"/>
+                <path d="M9 9h6M9 12h6M9 15h4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Enter Employer Suite
+            </button>
+          </a>
+        </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
           <div class="box">
             <h3>Assigned Applications</h3>

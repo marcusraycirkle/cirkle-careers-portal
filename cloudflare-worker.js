@@ -96,7 +96,7 @@ export default {
       '926568979747713095': { pin: '071025', role: 'Cirkle Dev | Associate Director', name: 'Teejay Everil', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433587280135848017/image.png' },
       '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Board of Directors', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png' },
       '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Managing Director', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
-      '146763000701911040': { pin: '191125', role: ' Cirkle Dev | Associate Director', name: 'Appler Smith', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
+      '1002932344799371354': { pin: '191125', role: ' Cirkle Dev | Associate Director', name: 'Appler Smith', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
     };
 
     // Discord Bot Token from environment (NEVER expose to client)
