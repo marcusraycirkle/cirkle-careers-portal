@@ -2,9 +2,11 @@
 // Initializes and manages the entire Employer Suite application
 
 class EmployerSuiteApp {
-  constructor() {
+  constructor(container = null, embeddedMode = false) {
     this.currentUser = null;
     this.isInitialized = false;
+    this.container = container;
+    this.embeddedMode = embeddedMode;
   }
 
   async init() {
@@ -145,8 +147,10 @@ class EmployerSuiteApp {
       loadingScreen.style.display = 'flex';
       loadingScreen.classList.remove('hidden');
     }
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('dashboard').classList.add('hidden');
+    const authScreen = document.getElementById('auth-screen');
+    const dashboard = document.getElementById('dashboard');
+    if (authScreen) authScreen.classList.add('hidden');
+    if (dashboard) dashboard.classList.add('hidden');
   }
 
   showAuthScreen() {
@@ -155,18 +159,34 @@ class EmployerSuiteApp {
       loadingScreen.classList.add('hidden');
       setTimeout(() => loadingScreen.style.display = 'none', 800);
     }
-    document.getElementById('auth-screen').classList.remove('hidden');
-    document.getElementById('dashboard').classList.add('hidden');
+    const authScreen = document.getElementById('auth-screen');
+    const dashboard = document.getElementById('dashboard');
+    if (authScreen) authScreen.classList.remove('hidden');
+    if (dashboard) dashboard.classList.add('hidden');
   }
 
   async showDashboard() {
-    document.getElementById('loading-screen').classList.add('hidden');
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
+    const loadingScreen = document.getElementById('loading-screen');
+    const authScreen = document.getElementById('auth-screen');
+    const dashboard = document.getElementById('dashboard');
+    
+    if (loadingScreen) loadingScreen.classList.add('hidden');
+    if (authScreen) authScreen.classList.add('hidden');
+    if (dashboard) {
+      dashboard.classList.remove('hidden');
+      dashboard.style.display = 'block';
+    }
 
-    // Set user info in nav
-    document.getElementById('user-avatar').src = `https://cdn.discordapp.com/avatars/${this.currentUser.id}/${this.currentUser.avatar}.png`;
-    document.getElementById('user-name').textContent = this.currentUser.username;
+    // Set user info in nav (only if elements exist)
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
+    
+    if (userAvatar && this.currentUser && this.currentUser.id && this.currentUser.avatar) {
+      userAvatar.src = `https://cdn.discordapp.com/avatars/${this.currentUser.id}/${this.currentUser.avatar}.png`;
+    }
+    if (userName && this.currentUser) {
+      userName.textContent = this.currentUser.username || this.currentUser.name || 'User';
+    }
 
     // Load home dashboard
     await employerTabs.navigateToTab('home');
@@ -354,17 +374,64 @@ window.initializeEmployerSuite = function(container, user) {
   // Clear container
   container.innerHTML = '';
   
-  // Add loading-container and main-container
+  // Add all required elements for embedded mode
   container.innerHTML = `
-    <div id="loading-container"></div>
-    <div id="main-container" style="display:none;"></div>
+    <div id="loading-screen" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; padding:2rem;">
+      <div style="text-align:center;">
+        <h2 id="welcome-user" style="font-size:1.8rem; margin-bottom:1rem;">Loading Employer Suite...</h2>
+        <div class="loading-stages" style="margin:2rem 0;">
+          <div class="stage" data-stage="cloudflare">
+            <div class="stage-icon">☁️</div>
+            <div class="stage-text">Cloudflare</div>
+            <div class="stage-status">pending</div>
+          </div>
+          <div class="stage" data-stage="backend">
+            <div class="stage-icon">🔧</div>
+            <div class="stage-text">Backend</div>
+            <div class="stage-status">pending</div>
+          </div>
+          <div class="stage" data-stage="auth">
+            <div class="stage-icon">🔐</div>
+            <div class="stage-text">Auth</div>
+            <div class="stage-status">pending</div>
+          </div>
+          <div class="stage" data-stage="userdata">
+            <div class="stage-icon">👤</div>
+            <div class="stage-text">User Data</div>
+            <div class="stage-status">pending</div>
+          </div>
+          <div class="stage" data-stage="storage">
+            <div class="stage-icon">💾</div>
+            <div class="stage-text">Storage</div>
+            <div class="stage-status">pending</div>
+          </div>
+          <div class="stage" data-stage="dashboard">
+            <div class="stage-icon">📊</div>
+            <div class="stage-text">Dashboard</div>
+            <div class="stage-status">pending</div>
+          </div>
+        </div>
+        <div class="progress-container" style="width:100%; max-width:400px; margin:2rem auto;">
+          <div id="loading-progress" style="width:0%; height:8px; background:linear-gradient(90deg, #667eea, #764ba2); border-radius:4px; transition:width 0.3s;"></div>
+        </div>
+        <p id="loading-message" style="color:#6e6e73; margin-top:1rem;">Initializing...</p>
+      </div>
+    </div>
+    <div id="auth-screen" class="hidden" style="display:none;">
+      <div style="text-align:center; padding:3rem;">
+        <h2>Authentication Required</h2>
+        <p>Please log in to access the Employer Suite.</p>
+      </div>
+    </div>
+    <div id="dashboard" class="hidden" style="display:none;"></div>
   `;
   
-  // Create and initialize app
-  const app = new EmployerSuiteApp();
+  // Create and initialize app in embedded mode
+  const app = new EmployerSuiteApp(container, true);
   
-  // If user is already authenticated from main portal, skip auth
+  // If user is already authenticated from main portal, use that session
   if (user) {
+    console.log('[Employer Suite] Using existing user session:', user);
     employerAuth.saveSession('existing', user);
   }
   
