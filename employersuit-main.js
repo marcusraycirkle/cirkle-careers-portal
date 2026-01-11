@@ -374,47 +374,47 @@ window.initializeEmployerSuite = function(container, user) {
   // Clear container
   container.innerHTML = '';
   
-  // Add all required elements for embedded mode
+  // Add all required elements for embedded mode with full dashboard structure
   container.innerHTML = `
     <div id="loading-screen" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; padding:2rem;">
       <div style="text-align:center;">
         <h2 id="welcome-user" style="font-size:1.8rem; margin-bottom:1rem;">Loading Employer Suite...</h2>
-        <div class="loading-stages" style="margin:2rem 0;">
-          <div class="stage" data-stage="cloudflare">
-            <div class="stage-icon">☁️</div>
-            <div class="stage-text">Cloudflare</div>
-            <div class="stage-status">pending</div>
+        <div class="loading-stages" style="margin:2rem 0; display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
+          <div class="stage" data-stage="cloudflare" style="text-align:center;">
+            <div class="stage-icon" style="font-size:2rem; margin-bottom:0.5rem;">☁️</div>
+            <div class="stage-text" style="font-size:0.9rem; font-weight:600;">Cloudflare</div>
+            <div class="stage-status" style="font-size:0.8rem; color:#6e6e73; margin-top:0.25rem;">⏳ Pending</div>
           </div>
-          <div class="stage" data-stage="backend">
-            <div class="stage-icon">🔧</div>
-            <div class="stage-text">Backend</div>
-            <div class="stage-status">pending</div>
+          <div class="stage" data-stage="backend" style="text-align:center;">
+            <div class="stage-icon" style="font-size:2rem; margin-bottom:0.5rem;">🔧</div>
+            <div class="stage-text" style="font-size:0.9rem; font-weight:600;">Backend</div>
+            <div class="stage-status" style="font-size:0.8rem; color:#6e6e73; margin-top:0.25rem;">⏳ Pending</div>
           </div>
-          <div class="stage" data-stage="auth">
-            <div class="stage-icon">🔐</div>
-            <div class="stage-text">Auth</div>
-            <div class="stage-status">pending</div>
+          <div class="stage" data-stage="auth" style="text-align:center;">
+            <div class="stage-icon" style="font-size:2rem; margin-bottom:0.5rem;">🔐</div>
+            <div class="stage-text" style="font-size:0.9rem; font-weight:600;">Auth</div>
+            <div class="stage-status" style="font-size:0.8rem; color:#6e6e73; margin-top:0.25rem;">⏳ Pending</div>
           </div>
-          <div class="stage" data-stage="userdata">
-            <div class="stage-icon">👤</div>
-            <div class="stage-text">User Data</div>
-            <div class="stage-status">pending</div>
+          <div class="stage" data-stage="userdata" style="text-align:center;">
+            <div class="stage-icon" style="font-size:2rem; margin-bottom:0.5rem;">👤</div>
+            <div class="stage-text" style="font-size:0.9rem; font-weight:600;">User Data</div>
+            <div class="stage-status" style="font-size:0.8rem; color:#6e6e73; margin-top:0.25rem;">⏳ Pending</div>
           </div>
-          <div class="stage" data-stage="storage">
-            <div class="stage-icon">💾</div>
-            <div class="stage-text">Storage</div>
-            <div class="stage-status">pending</div>
+          <div class="stage" data-stage="storage" style="text-align:center;">
+            <div class="stage-icon" style="font-size:2rem; margin-bottom:0.5rem;">💾</div>
+            <div class="stage-text" style="font-size:0.9rem; font-weight:600;">Storage</div>
+            <div class="stage-status" style="font-size:0.8rem; color:#6e6e73; margin-top:0.25rem;">⏳ Pending</div>
           </div>
-          <div class="stage" data-stage="dashboard">
-            <div class="stage-icon">📊</div>
-            <div class="stage-text">Dashboard</div>
-            <div class="stage-status">pending</div>
+          <div class="stage" data-stage="dashboard" style="text-align:center;">
+            <div class="stage-icon" style="font-size:2rem; margin-bottom:0.5rem;">📊</div>
+            <div class="stage-text" style="font-size:0.9rem; font-weight:600;">Dashboard</div>
+            <div class="stage-status" style="font-size:0.8rem; color:#6e6e73; margin-top:0.25rem;">⏳ Pending</div>
           </div>
         </div>
-        <div class="progress-container" style="width:100%; max-width:400px; margin:2rem auto;">
-          <div id="loading-progress" style="width:0%; height:8px; background:linear-gradient(90deg, #667eea, #764ba2); border-radius:4px; transition:width 0.3s;"></div>
+        <div class="progress-container" style="width:100%; max-width:500px; margin:2rem auto; background:#f0f0f0; border-radius:8px; height:8px; overflow:hidden;">
+          <div id="loading-progress" style="width:0%; height:100%; background:linear-gradient(90deg, #667eea, #764ba2); transition:width 0.5s ease;"></div>
         </div>
-        <p id="loading-message" style="color:#6e6e73; margin-top:1rem;">Initializing...</p>
+        <p id="loading-message" style="color:#6e6e73; margin-top:1rem; font-size:0.95rem;">Initializing systems...</p>
       </div>
     </div>
     <div id="auth-screen" class="hidden" style="display:none;">
@@ -423,7 +423,33 @@ window.initializeEmployerSuite = function(container, user) {
         <p>Please log in to access the Employer Suite.</p>
       </div>
     </div>
-    <div id="dashboard" class="hidden" style="display:none;"></div>
+    <div id="dashboard" class="dashboard hidden" style="display:none;">
+      <!-- Top Navigation -->
+      <nav class="top-nav" style="background:white; border-bottom:1px solid #e5e5ea; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center;">
+        <div class="nav-left" style="display:flex; align-items:center; gap:1rem;">
+          <img src="https://cdn.discordapp.com/attachments/1419317839269073016/1433880859022200872/allCareers.png" alt="AllCareers" class="nav-logo" style="height:40px;">
+          <h1 class="nav-title" style="font-size:1.5rem; font-weight:700; margin:0;">Employer Suite</h1>
+        </div>
+        <div class="nav-right" style="display:flex; align-items:center; gap:1rem;">
+          <div class="user-menu" style="display:flex; align-items:center; gap:0.75rem;">
+            <img id="user-avatar" src="" alt="User" class="user-avatar" style="width:36px; height:36px; border-radius:50%;">
+            <span id="user-name" class="user-name" style="font-weight:600;"></span>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main id="main-content" class="main-content" style="padding:2rem; min-height:500px;">
+        <!-- Content will be dynamically loaded here -->
+      </main>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification hidden" style="display:none;"></div>
+
+    <!-- Modal System -->
+    <div id="modal-overlay" class="modal-overlay hidden" style="display:none;"></div>
+    <div id="modal" class="modal hidden" style="display:none;"></div>
   `;
   
   // Create and initialize app in embedded mode
