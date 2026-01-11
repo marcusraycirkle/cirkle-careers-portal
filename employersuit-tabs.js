@@ -845,6 +845,11 @@ class EmployerSuiteTabs {
     this.currentTab = tabName;
     const content = document.getElementById('main-content');
     
+    if (!content) {
+      console.error('[Employer Suite] main-content element not found');
+      return;
+    }
+    
     // Show loading
     content.innerHTML = '<div class="loading-screen"><div class="spinner"></div></div>';
 

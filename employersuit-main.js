@@ -170,8 +170,14 @@ class EmployerSuiteApp {
     const authScreen = document.getElementById('auth-screen');
     const dashboard = document.getElementById('dashboard');
     
-    if (loadingScreen) loadingScreen.classList.add('hidden');
-    if (authScreen) authScreen.classList.add('hidden');
+    if (loadingScreen) {
+      loadingScreen.classList.add('hidden');
+      loadingScreen.style.display = 'none';
+    }
+    if (authScreen) {
+      authScreen.classList.add('hidden');
+      authScreen.style.display = 'none';
+    }
     if (dashboard) {
       dashboard.classList.remove('hidden');
       dashboard.style.display = 'block';
@@ -188,6 +194,9 @@ class EmployerSuiteApp {
       userName.textContent = this.currentUser.username || this.currentUser.name || 'User';
     }
 
+    // Wait for DOM to be ready before loading content
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Load home dashboard
     await employerTabs.navigateToTab('home');
   }
