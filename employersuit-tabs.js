@@ -107,38 +107,23 @@ class EmployerSuiteTabs {
       {
         name: 'Payslips',
         icon: '💰',
-        templates: ['Monthly Payslip', 'Weekly Payslip', 'Bonus Payment'],
-        count: 3
+        templates: ['Biweekly Payslip'],
+        count: 1,
+        description: 'Generate employee payslips'
       },
       {
-        name: 'Contracts',
-        icon: '📋',
-        templates: ['Employment Contract', 'NDA Agreement', 'Contractor Agreement'],
-        count: 3
-      },
-      {
-        name: 'Dismissals',
-        icon: '🚫',
-        templates: ['Termination Letter', 'Resignation Acceptance', 'Redundancy Notice'],
-        count: 3
-      },
-      {
-        name: 'Promotions',
-        icon: '⭐',
-        templates: ['Promotion Letter', 'Salary Increase', 'Role Change Notice'],
-        count: 3
-      },
-      {
-        name: 'Warnings',
+        name: 'Disciplinary',
         icon: '⚠️',
-        templates: ['Verbal Warning', 'Written Warning', 'Final Warning'],
-        count: 3
+        templates: ['Suspension Notice', 'Dismissal Letter'],
+        count: 2,
+        description: 'Formal disciplinary documents'
       },
       {
-        name: 'Reports',
-        icon: '📊',
-        templates: ['Performance Review', 'Incident Report', 'Monthly Summary'],
-        count: 3
+        name: 'General',
+        icon: '📄',
+        templates: ['Blank Document'],
+        count: 1,
+        description: 'Blank template for custom documents'
       }
     ];
 
@@ -162,15 +147,225 @@ class EmployerSuiteTabs {
 
   openTemplate(category, templateName) {
     showNotification(`Opening ${templateName} template...`, 'info');
-    // Template functionality will be implemented when you provide the templates
+    
+    // Get template configuration
+    const templateConfig = this.getTemplateConfig(templateName);
+    if (!templateConfig) {
+      showNotification('Template not found', 'error');
+      return;
+    }
+
+    // Show document form modal
     showModal(`
-      <h2>${templateName}</h2>
-      <p class="mb-3">Template content will be loaded here once provided.</p>
-      <p class="text-center" style="color: var(--text-secondary);">
-        Awaiting template documents from user...
-      </p>
-      <button class="btn btn-secondary mt-3" onclick="hideModal()">Close</button>
-    `);
+      <div class="document-form">
+        <h2>📄 ${templateName}</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">${templateConfig.description}</p>
+        
+        <form id="template-form" onsubmit="event.preventDefault(); employerTabs.generateDocument('${templateName}')">
+          ${this.renderTemplateFields(templateConfig.fields)}
+          
+          <div class="form-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+              Generate Document
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="hideModal()">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    `, 'large');
+  }
+
+  getTemplateConfig(templateName) {
+    const templates = {
+      'Biweekly Payslip': {
+        description: 'Generate a biweekly payslip for an employee',
+        googleDocUrl: 'https://docs.google.com/document/d/1xVRHQ5vH4pbMpUeEDBKIbGL9TBup7ChHkRYddZ_E6Ek/edit?usp=sharing',
+        fields: [
+          { name: 'employeeName', label: 'Employee Name', type: 'text', required: true },
+          { name: 'employeeId', label: 'Employee ID', type: 'text', required: true },
+          { name: 'payPeriod', label: 'Pay Period', type: 'text', placeholder: 'e.g., Jan 1-15, 2026', required: true },
+          { name: 'grossPay', label: 'Gross Pay (£)', type: 'number', step: '0.01', required: true },
+          { name: 'deductions', label: 'Deductions (£)', type: 'number', step: '0.01', required: true },
+          { name: 'netPay', label: 'Net Pay (£)', type: 'number', step: '0.01', required: true },
+          { name: 'hoursWorked', label: 'Hours Worked', type: 'number', step: '0.5', required: false },
+          { name: 'overtimeHours', label: 'Overtime Hours', type: 'number', step: '0.5', required: false }
+        ]
+      },
+      'Suspension Notice': {
+        description: 'Create a formal suspension notice',
+        googleDocUrl: 'https://docs.google.com/document/d/1ndQSg6q9hhtUolTwHRZiV8AuK1JrPBCAOU8U-j3IYr0/edit?usp=sharing',
+        fields: [
+          { name: 'employeeName', label: 'Employee Name', type: 'text', required: true },
+          { name: 'employeePosition', label: 'Position', type: 'text', required: true },
+          { name: 'suspensionDate', label: 'Suspension Start Date', type: 'date', required: true },
+          { name: 'reason', label: 'Reason for Suspension', type: 'textarea', required: true },
+          { name: 'investigationDetails', label: 'Investigation Details', type: 'textarea', required: false },
+          { name: 'returnDate', label: 'Expected Return Date', type: 'date', required: false },
+          { name: 'managerName', label: 'Manager Name', type: 'text', required: true },
+          { name: 'todayDate', label: 'Letter Date', type: 'date', required: true }
+        ]
+      },
+      'Dismissal Letter': {
+        description: 'Create a formal dismissal/termination letter',
+        googleDocUrl: 'https://docs.google.com/document/d/1ndQSg6q9hhtUolTwHRZiV8AuK1JrPBCAOU8U-j3IYr0/edit?usp=sharing',
+        fields: [
+          { name: 'employeeName', label: 'Employee Name', type: 'text', required: true },
+          { name: 'employeePosition', label: 'Position', type: 'text', required: true },
+          { name: 'terminationDate', label: 'Termination Date', type: 'date', required: true },
+          { name: 'reason', label: 'Reason for Dismissal', type: 'textarea', required: true },
+          { name: 'finalPayDate', label: 'Final Pay Date', type: 'date', required: false },
+          { name: 'propertyReturn', label: 'Company Property to Return', type: 'textarea', required: false },
+          { name: 'managerName', label: 'Manager Name', type: 'text', required: true },
+          { name: 'todayDate', label: 'Letter Date', type: 'date', required: true }
+        ]
+      },
+      'Blank Document': {
+        description: 'Start with a blank template',
+        googleDocUrl: 'https://docs.google.com/document/d/15wm-CrohvK3JgEJjItYFd2DpS5uYSk_Iu2h-p7KWpxw/edit?usp=sharing',
+        fields: [
+          { name: 'documentTitle', label: 'Document Title', type: 'text', required: true },
+          { name: 'content', label: 'Content', type: 'textarea', placeholder: 'Enter your document content...', required: true }
+        ]
+      }
+    };
+
+    return templates[templateName];
+  }
+
+  renderTemplateFields(fields) {
+    return fields.map(field => {
+      const required = field.required ? 'required' : '';
+      const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
+      
+      if (field.type === 'textarea') {
+        return `
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+              ${field.label}${field.required ? ' *' : ''}
+            </label>
+            <textarea 
+              name="${field.name}" 
+              ${required}
+              ${placeholder}
+              rows="4"
+              style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;"
+            ></textarea>
+          </div>
+        `;
+      }
+      
+      return `
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+            ${field.label}${field.required ? ' *' : ''}
+          </label>
+          <input 
+            type="${field.type}" 
+            name="${field.name}" 
+            ${required}
+            ${placeholder}
+            ${field.step ? `step="${field.step}"` : ''}
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;"
+          />
+        </div>
+      `;
+    }).join('');
+  }
+
+  async generateDocument(templateName) {
+    const form = document.getElementById('template-form');
+    if (!form.checkValidity()) {
+      showNotification('Please fill in all required fields', 'error');
+      return;
+    }
+
+    // Get form data
+    const formData = new FormData(form);
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+      data[key] = value;
+    }
+
+    showNotification('Generating document...', 'info');
+
+    try {
+      const templateConfig = this.getTemplateConfig(templateName);
+      
+      // Create document object
+      const document = {
+        templateName: templateName,
+        googleDocUrl: templateConfig.googleDocUrl,
+        data: data,
+        createdAt: new Date().toISOString(),
+        createdBy: this.currentUser?.username || 'Unknown'
+      };
+
+      // Save to storage server
+      const response = await fetch('http://192.168.1.112:3100/api/documents/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': '7d8888e85e799b9efa7cfa5763959694c68fd4b88bfd93bffd87a5e52b4deb2d'
+        },
+        body: JSON.stringify(document)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate document');
+      }
+
+      const result = await response.json();
+      
+      hideModal();
+      showNotification('Document generated successfully!', 'success');
+      
+      // Show document preview/download modal
+      showModal(`
+        <div class="document-result" style="text-align: center;">
+          <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+          <h2>Document Generated!</h2>
+          <p style="color: var(--text-secondary); margin: 1rem 0;">${templateName} has been created successfully.</p>
+          
+          <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
+            <h3 style="margin-bottom: 1rem;">Document Details</h3>
+            ${this.renderDocumentSummary(data)}
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <a href="${templateConfig.googleDocUrl}" target="_blank" class="btn btn-primary" style="flex: 1; text-decoration: none;">
+              📄 Open Template
+            </a>
+            <button class="btn btn-secondary" onclick="hideModal()" style="flex: 1;">
+              Done
+            </button>
+          </div>
+          
+          <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 1rem;">
+            💡 Tip: Open the Google Doc template and fill in the fields with the information above.
+          </p>
+        </div>
+      `);
+      
+    } catch (error) {
+      console.error('Document generation error:', error);
+      showNotification('Failed to generate document. Please try again.', 'error');
+    }
+  }
+
+  renderDocumentSummary(data) {
+    return Object.entries(data)
+      .map(([key, value]) => {
+        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+        return `
+          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+            <span style="font-weight: 500;">${label}:</span>
+            <span>${value}</span>
+          </div>
+        `;
+      })
+      .join('');
   }
 
   // ============================

@@ -460,6 +460,97 @@ app.get('/api/admin/storage/total', async (req, res) => {
   }
 });
 
+// ============================
+// Document Generation Endpoint
+// ============================
+
+/**
+ * POST /api/documents/generate
+ * Generate a document from a template
+ */
+app.post('/api/documents/generate', async (req, res) => {
+  try {
+    const { templateName, googleDocUrl, data, createdBy } = req.body;
+    
+    if (!templateName || !data) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Create documents directory if it doesn't exist
+    const documentsDir = path.join(CONFIG.storagePath, 'documents');
+    await fs.mkdir(documentsDir, { recursive: true });
+
+    // Generate unique document ID
+    const documentId = crypto.randomBytes(16).toString('hex');
+    const timestamp = new Date().toISOString();
+    
+    // Create document record
+    const document = {
+      id: documentId,
+      templateName,
+      googleDocUrl,
+      data,
+      createdBy,
+      createdAt: timestamp
+    };
+
+    // Save document metadata
+    const documentFile = path.join(documentsDir, `${documentId}.json`);
+    await fs.writeFile(documentFile, JSON.stringify(document, null, 2), 'utf8');
+
+    console.log(`📄 Document generated: ${templateName} (ID: ${documentId})`);
+
+    res.json({
+      success: true,
+      documentId,
+      document
+    });
+
+  } catch (error) {
+    console.error('Document generation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/documents/list
+ * List all generated documents
+ */
+app.get('/api/documents/list', async (req, res) => {
+  try {
+    const documentsDir = path.join(CONFIG.storagePath, 'documents');
+    
+    // Ensure directory exists
+    await fs.mkdir(documentsDir, { recursive: true });
+
+    // Read all document files
+    const files = await fs.readdir(documentsDir);
+    const documents = [];
+
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        const filePath = path.join(documentsDir, file);
+        const content = await fs.readFile(filePath, 'utf8');
+        const document = JSON.parse(content);
+        documents.push(document);
+      }
+    }
+
+    // Sort by creation date (newest first)
+    documents.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({
+      success: true,
+      documents,
+      count: documents.length
+    });
+
+  } catch (error) {
+    console.error('Document list error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error);
@@ -517,6 +608,8 @@ async function startServer() {
       console.log('   GET  /api/files/download/:userId/:filename');
       console.log('   DELETE /api/files/delete/:userId/:filename');
       console.log('   GET  /api/files/metadata/:userId/:filename');
+      console.log('   POST /api/documents/generate');
+      console.log('   GET  /api/documents/list');
       console.log('   GET  /api/admin/storage/total');
       console.log('');
     });
