@@ -1,0 +1,17 @@
+name = "timeclock-backend"
+main = "timeclock-backend.js"
+compatibility_date = "2024-01-01"
+
+# KV Namespace for data storage
+# Run: wrangler kv:namespace create "TIMECLOCK_KV"
+# Then replace the id below with the output
+[[kv_namespaces]]
+binding = "TIMECLOCK_KV"
+id = "YOUR_KV_NAMESPACE_ID_HERE"  # Replace this after creating KV namespace
+
+# Public environment variables
+[vars]
+# Add any public variables here (no secrets!)
+
+# Secrets (set with: wrangler secret put SECRET_NAME)
+# - DISCORD_BOT_TOKEN: Your Discord bot token
