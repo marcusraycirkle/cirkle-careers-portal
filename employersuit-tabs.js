@@ -373,29 +373,41 @@ class EmployerSuiteTabs {
   // ============================
   
   async renderFiles() {
-    // Mock data since storage server not set up yet
-    const storageInfo = { used: 0, limit: 10737418240 }; // 10GB limit
-    const files = { files: [] };
+    let storageInfo = { used: 0, total: 10737418240 }; // 10GB limit
+    let files = { files: [] };
+    
+    // Fetch real data from storage server
+    try {
+      const storageData = await employerAPI.getStorageInfo();
+      if (storageData && !storageData.error) {
+        storageInfo.used = storageData.used || 0;
+        storageInfo.total = storageData.total || 10737418240;
+      }
+      
+      const fileList = await employerAPI.getFiles();
+      if (fileList && !fileList.error) {
+        files.files = fileList.files || [];
+      }
+    } catch (error) {
+      console.error('Error loading files:', error);
+    }
 
     const usedGB = (storageInfo.used / (1024 * 1024 * 1024)).toFixed(2);
-    const totalGB = storageInfo.limit / (1024 * 1024 * 1024);
-    const percentage = ((storageInfo.used / storageInfo.limit) * 100).toFixed(1);
+    const totalGB = (storageInfo.total / (1024 * 1024 * 1024)).toFixed(2);
+    const percentage = ((storageInfo.used / storageInfo.total) * 100).toFixed(1);
 
     return `
       <div class="tab-content">
         <div class="tab-header">
           <h2>📁 My Files</h2>
           <div class="tab-actions">
+            <button class="btn btn-primary" onclick="employerTabs.uploadFile()">
+              ⬆️ Upload Files
+            </button>
             <button class="btn btn-secondary" onclick="employerTabs.navigateToTab('home')">
               ← Back
             </button>
           </div>
-        </div>
-
-        <!-- Warning Banner -->
-        <div class="alert alert-warning" style="background:#fff3cd; border:1px solid #ffc107; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
-          <strong>⚠️ Storage Server Not Set Up</strong>
-          <p style="margin:0.5rem 0 0 0;">File storage is not yet configured. Upload and download functionality will be available once the storage server is deployed.</p>
         </div>
 
         <!-- Storage Info -->
@@ -484,14 +496,26 @@ class EmployerSuiteTabs {
     input.multiple = true;
     input.onchange = async (e) => {
       const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+      
       showNotification(`Uploading ${files.length} file(s)...`, 'info');
       
-      for (const file of files) {
-        await employerAPI.uploadFile(file);
+      try {
+        let successCount = 0;
+        for (const file of files) {
+          const result = await employerAPI.uploadFile(file);
+          if (result && result.success) {
+            successCount++;
+          }
+        }
+        
+        showNotification(`${successCount} file(s) uploaded successfully!`, 'success');
+        // Reload the files tab to show new uploads
+        await this.navigateToTab('files');
+      } catch (error) {
+        console.error('Upload error:', error);
+        showNotification('Upload failed. Please try again.', 'error');
       }
-      
-      showNotification('Upload complete!', 'success');
-      this.navigateToTab('files');
     };
     input.click();
   }
@@ -975,18 +999,20 @@ class EmployerSuiteTabs {
   
   async renderDatabase() {
     let staff = { count: 0, staff: [] };
-    let errorMessage = 'TimeClock Backend Not Connected';
+    let errorMessage = null;
     
-    // Skip API call for now - backend not available
-    // Uncomment when backend is ready:
-    // try {
-    //   staff = await employerAPI.getAllStaff(true);
-    //   if (staff && !staff.error) {
-    //     errorMessage = null;
-    //   }
-    // } catch (error) {
-    //   console.error('Staff database error:', error);
-    // }
+    // Call TimeClock backend to get staff
+    try {
+      staff = await employerAPI.getAllStaff(true);
+      if (staff && staff.success) {
+        errorMessage = null;
+      } else {
+        errorMessage = 'Failed to load staff data';
+      }
+    } catch (error) {
+      console.error('Staff database error:', error);
+      errorMessage = 'TimeClock Backend Connection Error';
+    }
 
     return `
       <div class="tab-content">
