@@ -1272,11 +1272,12 @@ class EmployerSuiteTabs {
   async navigateToTab(tabName) {
     this.currentTab = tabName;
     
-    // Wait for element to be available (DOM might still be loading)
+    // Wait for element to be available and visible (DOM might still be loading)
     let content = document.getElementById('main-content');
     let retries = 0;
+    const maxRetries = 20; // Increase retries for embedded mode
     
-    while (!content && retries < 10) {
+    while ((!content || content.offsetParent === null) && retries < maxRetries) {
       await new Promise(resolve => setTimeout(resolve, 100));
       content = document.getElementById('main-content');
       retries++;
@@ -1285,6 +1286,17 @@ class EmployerSuiteTabs {
     if (!content) {
       console.error('[Employer Suite] main-content element not found after waiting');
       return;
+    }
+    
+    if (content.offsetParent === null) {
+      console.warn('[Employer Suite] main-content element exists but is not visible');
+      // Try to make parent visible if it's hidden
+      const dashboard = document.getElementById('dashboard');
+      if (dashboard) {
+        dashboard.classList.remove('hidden');
+        dashboard.style.display = 'block';
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
     }
     
     // Show loading
