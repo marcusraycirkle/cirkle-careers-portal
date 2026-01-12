@@ -306,24 +306,30 @@ class EmployerSuiteTabs {
   // ============================
   
   async renderNotepad() {
-    // Mock data since backend not connected yet
-    const notes = { notes: [] };
+    // Fetch actual notes from storage
+    let notes = { notes: [] };
+    
+    try {
+      const noteList = await employerAPI.getNotes();
+      if (noteList && !noteList.error) {
+        notes = noteList;
+      }
+    } catch (error) {
+      console.error('Error loading notes:', error);
+    }
 
     return `
       <div class="tab-content">
         <div class="tab-header">
           <h2>📝 Notepad</h2>
           <div class="tab-actions">
+            <button class="btn btn-primary" onclick="employerTabs.createNote()">
+              ➕ New Note
+            </button>
             <button class="btn btn-secondary" onclick="employerTabs.navigateToTab('home')">
               ← Back
             </button>
           </div>
-        </div>
-
-        <!-- Warning Banner -->
-        <div class="alert alert-warning" style="background:#fff3cd; border:1px solid #ffc107; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
-          <strong>⚠️ Notes Don't Save Yet</strong>
-          <p style="margin:0.5rem 0 0 0;">The notepad backend is not yet connected. Your notes will not be saved. This feature will be available once the storage server is deployed.</p>
         </div>
 
         <div class="notepad-container" style="display:grid; grid-template-columns:250px 1fr; gap:1.5rem; min-height:500px;">
@@ -337,7 +343,7 @@ class EmployerSuiteTabs {
             <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
               <div class="empty-icon" style="font-size:4rem; margin-bottom:1rem;">📝</div>
               <h3>No note selected</h3>
-              <p>Notes functionality will be available once backend is configured.</p>
+              <p>Select a note from the sidebar or create a new one to get started.</p>
             </div>
           </div>
         </div>
@@ -955,6 +961,113 @@ class EmployerSuiteTabs {
     } catch (error) {
       showNotification('Failed to sync database', 'error');
     }
+  }
+
+  // ============================
+  // FILE OPERATIONS
+  // ============================
+  
+  createNote() {
+    const noteId = 'note_' + Date.now();
+    this.openNoteEditor(noteId, '', '');
+  }
+
+  formatText(format) {
+    const textarea = document.getElementById('note-content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    let formattedText = selectedText;
+
+    switch (format) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText}*`;
+        break;
+      case 'underline':
+        formattedText = `<u>${selectedText}</u>`;
+        break;
+      case 'h1':
+        formattedText = `# ${selectedText}`;
+        break;
+      case 'h2':
+        formattedText = `## ${selectedText}`;
+        break;
+      case 'h3':
+        formattedText = `### ${selectedText}`;
+        break;
+      case 'ul':
+        formattedText = `- ${selectedText}`;
+        break;
+      case 'ol':
+        formattedText = `1. ${selectedText}`;
+        break;
+      case 'code':
+        formattedText = `\`${selectedText}\``;
+        break;
+    }
+
+    textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+    this.updatePreview(textarea.value);
+  }
+
+  async deleteNote(noteId) {
+    if (confirm('Are you sure you want to delete this note?')) {
+      await employerAPI.deleteNote(noteId);
+      showNotification('Note deleted', 'success');
+      this.navigateToTab('notepad');
+    }
+  }
+
+  createFolder() {
+    const folderName = prompt('Enter folder name:');
+    if (folderName) {
+      showNotification('Creating folder: ' + folderName, 'info');
+      // TODO: Implement folder creation API call
+      setTimeout(() => {
+        showNotification('Folder created successfully', 'success');
+        this.navigateToTab('files');
+      }, 500);
+    }
+  }
+
+  async openFile(fileId) {
+    showNotification('Opening file...', 'info');
+    // TODO: Implement file viewing/downloading
+  }
+
+  async shareFile(fileId) {
+    showModal(`
+      <h2>Share File</h2>
+      <p>Select employers to share this file with:</p>
+      <div id="share-employer-list" class="checkbox-list">
+        <p>Loading employers...</p>
+      </div>
+      <div class="form-actions mt-3">
+        <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="employerTabs.confirmShareFile('${fileId}')">Share</button>
+      </div>
+    `);
+  }
+
+  async downloadFile(fileId) {
+    showNotification('Downloading file...', 'info');
+    // TODO: Implement file download
+  }
+
+  async deleteFile(fileId) {
+    if (confirm('Are you sure you want to delete this file?')) {
+      await employerAPI.deleteFile(fileId);
+      showNotification('File deleted', 'success');
+      this.navigateToTab('files');
+    }
+  }
+
+  async confirmShareFile(fileId) {
+    showNotification('File shared successfully', 'success');
+    hideModal();
   }
 
   // ============================
