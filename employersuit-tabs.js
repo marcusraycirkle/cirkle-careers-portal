@@ -793,11 +793,11 @@ class EmployerSuiteTabs {
 
   createEvent() {
     showModal(`
-      <h2>Create New Event</h2>
+      <h2>📅 Create New Event</h2>
       <form id="event-form" class="modal-form">
         <div class="form-group">
           <label>Event Type</label>
-          <select id="event-type" class="form-control">
+          <select id="event-type" class="form-control" style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px;">
             <option value="meeting">Meeting</option>
             <option value="conference">Conference</option>
             <option value="collaboration">Collaboration Time</option>
@@ -808,16 +808,27 @@ class EmployerSuiteTabs {
         </div>
 
         <div class="form-group">
-          <label>Title</label>
-          <input type="text" id="event-title" class="form-control" required>
+          <label>Title *</label>
+          <input type="text" id="event-title" class="form-control" required style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px;">
         </div>
 
         <div class="form-group">
           <label>Description</label>
-          <textarea id="event-description" class="form-control" rows="3"></textarea>
+          <textarea id="event-description" class="form-control" rows="3" style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px; font-family:inherit; resize:vertical;"></textarea>
         </div>
 
-        <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="event-date" class="form-control" required style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px;">
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="event-all-day"> All Day Event
+          </label>
+        </div>
+
+        <div id="time-inputs" class="form-row" style="display:flex; gap:1rem;">
           <div class="form-group">
             <label>Date</label>
             <input type="date" id="event-date" class="form-control" required>
@@ -858,54 +869,103 @@ class EmployerSuiteTabs {
           </label>
         </div>
 
+          <div class="form-group" style="flex:1;">
+            <label>Start Time</label>
+            <input type="time" id="event-start" class="form-control" style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px;">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>End Time</label>
+            <input type="time" id="event-end" class="form-control" style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Importance</label>
+          <select id="event-importance" class="form-control" style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px;">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="event-shared"> Share with other employers
+          </label>
+        </div>
+
         <div class="form-group" id="share-with-group" style="display: none;">
           <label>Share With</label>
-          <div id="employer-list" class="checkbox-list"></div>
+          <div id="employer-list" class="checkbox-list">Loading employers...</div>
         </div>
 
-        <div class="form-actions mt-3">
-          <button type="button" class="btn btn-secondary" onclick="hideModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Event</button>
+        <div class="form-actions" style="display:flex; gap:1rem; margin-top:2rem; padding-top:1.5rem; border-top:2px solid #d1d1d6;">
+          <button type="button" class="btn btn-secondary" onclick="hideModal()" style="flex:1;">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="flex:1;">Create Event</button>
         </div>
       </form>
-    `);
+    `, 'large');
+
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('event-date').value = today;
 
     // Handle all-day checkbox
-    document.getElementById('event-all-day').addEventListener('change', (e) => {
-      document.getElementById('time-inputs').style.display = e.target.checked ? 'none' : 'flex';
-    });
+    const allDayCheckbox = document.getElementById('event-all-day');
+    const timeInputs = document.getElementById('time-inputs');
+    if (allDayCheckbox && timeInputs) {
+      allDayCheckbox.addEventListener('change', (e) => {
+        timeInputs.style.display = e.target.checked ? 'none' : 'flex';
+      });
+    }
 
     // Handle shared checkbox
-    document.getElementById('event-shared').addEventListener('change', (e) => {
-      document.getElementById('share-with-group').style.display = e.target.checked ? 'block' : 'none';
-    });
+    const sharedCheckbox = document.getElementById('event-shared');
+    const shareWithGroup = document.getElementById('share-with-group');
+    if (sharedCheckbox && shareWithGroup) {
+      sharedCheckbox.addEventListener('change', (e) => {
+        shareWithGroup.style.display = e.target.checked ? 'block' : 'none';
+      });
+    }
 
     // Form submission
-    document.getElementById('event-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await this.submitEvent();
-    });
+    const eventForm = document.getElementById('event-form');
+    if (eventForm) {
+      eventForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await this.submitEvent();
+      });
+    }
   }
 
   async submitEvent() {
-    const eventData = {
-      type: document.getElementById('event-type').value,
-      title: document.getElementById('event-title').value,
-      description: document.getElementById('event-description').value,
-      date: document.getElementById('event-date').value,
-      allDay: document.getElementById('event-all-day').checked,
-      startTime: document.getElementById('event-start').value,
-      endTime: document.getElementById('event-end').value,
-      importance: document.getElementById('event-importance').value,
-      shared: document.getElementById('event-shared').checked
-    };
+    try {
+      const eventData = {
+        type: document.getElementById('event-type').value,
+        title: document.getElementById('event-title').value,
+        description: document.getElementById('event-description').value,
+        date: document.getElementById('event-date').value,
+        allDay: document.getElementById('event-all-day').checked,
+        startTime: document.getElementById('event-start').value,
+        endTime: document.getElementById('event-end').value,
+        importance: document.getElementById('event-importance').value,
+        shared: document.getElementById('event-shared').checked
+      };
 
-    const result = await employerAPI.createEvent(eventData);
-    
-    if (result.success) {
-      showNotification('Event created successfully!', 'success');
-      hideModal();
-      this.navigateToTab('calendar');
+      showNotification('Creating event...', 'info');
+
+      const result = await employerAPI.createEvent(eventData);
+      
+      if (result && result.success) {
+        showNotification('Event created successfully!', 'success');
+        hideModal();
+        this.navigateToTab('calendar');
+      } else {
+        showNotification(result?.error || 'Failed to create event', 'error');
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      showNotification('Failed to create event. Please try again.', 'error');
     }
   }
 

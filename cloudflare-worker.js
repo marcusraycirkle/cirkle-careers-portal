@@ -16,7 +16,7 @@ const rateLimitStore = new Map();
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*', // TODO: Change to specific domain in production
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Requested-With',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Requested-With, Authorization, X-API-Key',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
