@@ -1106,7 +1106,12 @@ class EmployerSuiteTabs {
     `, true);
   }
 
-  renderProfileOverview(staff) {email || 'N/A'}
+  renderProfileOverview(staff) {
+    return `
+      <div class="profile-overview">
+        <div class="info-grid">
+          <div class="info-item">
+            <strong>Email:</strong> ${staff.email || 'N/A'}
           </div>
           <div class="info-item">
             <strong>Department:</strong> ${staff.department || 'N/A'}
@@ -1127,24 +1132,8 @@ class EmployerSuiteTabs {
             <strong>Hire Date:</strong> ${staff.hireDate || 'N/A'}
           </div>
           <div class="info-item">
-            <strong>User ID:</strong> ${staff.userId || staff.id || 'N/A'
-          <div class="info-item">
-            <strong>Timezone:</strong> ${staff.profile.timezone}
+            <strong>User ID:</strong> ${staff.userId || staff.id || 'N/A'}
           </div>
-          <div class="info-item">
-            <strong>Country:</strong> ${staff.profile.country}
-          </div>
-        </div>
-
-        <div class="roles-section mt-3">
-          <h4>Discord Roles</h4>
-          <div class="roles-list">
-            ${staff.roles.map(role => `<span class="role-badge">${role}</span>`).join('')}
-          </div>
-        </div>
-
-        <div class="last-login mt-3">
-          <strong>Last Login:</strong> ${new Date(staff.lastLogin).toLocaleString()}
         </div>
       </div>
     `;
