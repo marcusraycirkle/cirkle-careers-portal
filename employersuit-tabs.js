@@ -302,21 +302,12 @@ class EmployerSuiteTabs {
         createdBy: this.currentUser?.username || 'Unknown'
       };
 
-      // Save to storage server
-      const response = await fetch('http://192.168.1.112:3100/api/documents/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': '7d8888e85e799b9efa7cfa5763959694c68fd4b88bfd93bffd87a5e52b4deb2d'
-        },
-        body: JSON.stringify(document)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate document');
+      // Save via Cloudflare Worker API
+      const result = await employerAPI.generateDocument(document);
+      
+      if (!result || !result.success) {
+        throw new Error(result?.error || 'Failed to generate document');
       }
-
-      const result = await response.json();
       
       hideModal();
       showNotification('Document generated successfully!', 'success');
@@ -571,7 +562,8 @@ class EmployerSuiteTabs {
   }
 
   renderNotesList(notes) {
-    if (notes.length === 0) {
+    // Handle if notes is not an array or is undefined
+    if (!Array.isArray(notes) || notes.length === 0) {
       return '<div class="empty-notes" style="padding:2rem; text-align:center; color:#6e6e73;">No notes yet</div>';
     }
 
@@ -852,47 +844,7 @@ class EmployerSuiteTabs {
           </label>
         </div>
 
-        <div id="time-inputs" class="form-row" style="display:flex; gap:1rem;">
-          <div class="form-group">
-            <label>Date</label>
-            <input type="date" id="event-date" class="form-control" required>
-          </div>
-          
-          <div class="form-group">
-            <label>
-              <input type="checkbox" id="event-all-day"> All Day
-            </label>
-          </div>
-        </div>
-
-        <div class="form-row" id="time-inputs">
-          <div class="form-group">
-            <label>Start Time</label>
-            <input type="time" id="event-start" class="form-control">
-          </div>
-          
-          <div class="form-group">
-            <label>End Time</label>
-            <input type="time" id="event-end" class="form-control">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Importance</label>
-          <select id="event-importance" class="form-control">
-            <option value="common">🟢 Common</option>
-            <option value="important">🟡 Important</option>
-            <option value="high">🟠 High Priority</option>
-            <option value="urgent">🔴 Urgent</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>
-            <input type="checkbox" id="event-shared"> Share with other employers
-          </label>
-        </div>
-
+        <div class="form-row" id="time-inputs" style="display:flex; gap:1rem;">
           <div class="form-group" style="flex:1;">
             <label>Start Time</label>
             <input type="time" id="event-start" class="form-control" style="width:100%; padding:0.75rem; border:2px solid #d1d1d6; border-radius:10px;">

@@ -681,6 +681,38 @@ export default {
           headers: storageResponse.headers
         });
       }
+
+      // Document generation endpoint
+      if (path === '/api/employersuit/documents/generate' && request.method === 'POST') {
+        const documentData = await request.json();
+        const storageServerUrl = env.STORAGE_SERVER_URL;
+        const storageApiKey = env.STORAGE_API_KEY;
+        
+        if (!storageServerUrl || !storageApiKey) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            error: 'Storage server not configured'
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+        
+        const storageResponse = await fetch(`${storageServerUrl}/api/documents/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': storageApiKey
+          },
+          body: JSON.stringify(documentData)
+        });
+        
+        const result = await storageResponse.json();
+        
+        return addSecurityHeaders(new Response(JSON.stringify(result), {
+          status: storageResponse.status,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
       
       // Notes endpoints (using Firebase)
       if (path === '/api/employersuit/notes/list' && request.method === 'POST') {

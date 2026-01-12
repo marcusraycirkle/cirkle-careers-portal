@@ -53,8 +53,7 @@ class EmployerSuiteAPI {
     const response = await fetch(`${TIMECLOCK_API}/employers/staff/list`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.authToken}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         guildId: GUILD_ID,
@@ -549,19 +548,13 @@ class EmployerSuiteAPI {
     return await response.json();
   }
 
-  async generateDocument(templateId, formData) {
-    const response = await fetch(`${CAREERS_API}/api/employersuit/templates/generate`, {
+  async generateDocument(documentData) {
+    const response = await fetch(`${CAREERS_API}/api/employersuit/documents/generate`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.authToken}`
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        templateId,
-        formData,
-        generatedBy: this.currentUser.id,
-        generatedAt: new Date().toISOString()
-      })
+      body: JSON.stringify(documentData)
     });
     return await response.json();
   }
