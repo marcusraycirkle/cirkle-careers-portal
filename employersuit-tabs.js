@@ -1001,8 +1001,8 @@ class EmployerSuiteTabs {
 
   renderDatabaseStats(staff) {
     const total = staff.count || 0;
-    const active = staff.staff?.filter(s => s.profile.status === 'Active').length || 0;
-    const suspended = staff.staff?.filter(s => s.suspended).length || 0;
+    const active = staff.staff?.filter(s => s.status === 'Active').length || 0;
+    const suspended = staff.staff?.filter(s => s.status === 'Suspended').length || 0;
 
     return `
       <div class="stats-grid">
@@ -1033,58 +1033,70 @@ class EmployerSuiteTabs {
       `;
     }
 
-    return staff.map(member => `
-      <div class="staff-card" onclick="employerTabs.openStaffProfile('${member.userId}')">
+    return staff.map(member => {
+      const avatarUrl = member.avatar 
+        ? `https://cdn.discordapp.com/avatars/${member.id}/${member.avatar}.png`
+        : 'https://cdn.discordapp.com/embed/avatars/0.png';
+      
+      return `
+      <div class="staff-card" onclick="employerTabs.openStaffProfile('${member.userId || member.id}')">
         <div class="staff-avatar">
-          <img src="${member.avatar}" alt="${member.name}">
-          ${member.suspended ? '<div class="status-badge suspended">Suspended</div>' : ''}
+          <img src="${avatarUrl}" alt="${member.name}" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+          ${member.status === 'Suspended' ? '<div class="status-badge suspended">Suspended</div>' : ''}
         </div>
         <div class="staff-info">
           <h3>${member.name}</h3>
-          <p class="staff-department">${member.profile.department}</p>
-          <p class="staff-id">${member.profile.staffId}</p>
+          <p class="staff-department">${member.department || 'No Department'}</p>
+          <p class="staff-id">Level ${member.baseLevel || 'N/A'}</p>
+          <p class="staff-hire-date">${member.hireDate || ''}</p>
         </div>
         <div class="staff-stats">
           <div class="stat-item">
-            <span class="stat-label">Payslips</span>
-            <span class="stat-value">${member.stats.payslips}</span>
+            <span class="stat-label">Status</span>
+            <span class="stat-value">${member.status || 'Active'}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">Reports</span>
-            <span class="stat-value">${member.stats.reports}</span>
+            <span class="stat-label">Location</span>
+            <span class="stat-value">${member.country || 'N/A'}</span>
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   async openStaffProfile(userId) {
     const staff = await employerAPI.getStaffMember(userId, true);
     
+    const member = staff.staff || staff.user || {};
+    const avatarUrl = member.avatar 
+      ? `https://cdn.discordapp.com/avatars/${member.id}/${member.avatar}.png`
+      : 'https://cdn.discordapp.com/embed/avatars/0.png';
+    
     showModal(`
       <div class="staff-profile">
         <div class="profile-header">
-          <img src="${staff.staff.avatar}" alt="${staff.staff.name}" class="profile-avatar-large">
+          <img src="${avatarUrl}" alt="${member.name}" class="profile-avatar-large" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
           <div>
-            <h2>${staff.staff.name}</h2>
-            <p>${staff.staff.profile.department} • ${staff.staff.profile.staffId}</p>
-            <p>${staff.staff.discordTag}</p>
+            <h2>${member.name || member.username}</h2>
+            <p>${member.department || 'No Department'} • Level ${member.baseLevel || 'N/A'}</p>
+            <p>${member.email || member.userId || member.id}</p>
           </div>
         </div>
 
         <div class="profile-tabs">
           <button class="tab-btn active" onclick="employerTabs.switchProfileTab('overview')">Overview</button>
-          <button class="tab-btn" onclick="employerTabs.switchProfileTab('payslips')">Payslips (${staff.staff.payslips?.length || 0})</button>
-          <button class="tab-btn" onclick="employerTabs.switchProfileTab('disciplinaries')">Disciplinaries (${staff.staff.disciplinaries?.length || 0})</button>
-          <button class="tab-btn" onclick="employerTabs.switchProfileTab('reports')">Reports (${staff.staff.reports?.length || 0})</button>
+          <button class="tab-btn" onclick="employerTabs.switchProfileTab('payslips')">Payslips (${member.payslips?.length || 0})</button>
+          <button class="tab-btn" onclick="employerTabs.switchProfileTab('disciplinaries')">Disciplinaries (${member.disciplinaries?.length || 0})</button>
+          <button class="tab-btn" onclick="employerTabs.switchProfileTab('reports')">Reports (${member.reports?.length || 0})</button>
         </div>
 
         <div id="profile-tab-content">
-          ${this.renderProfileOverview(staff.staff)}
+          ${this.renderProfileOverview(member)}
         </div>
 
         <div class="profile-actions mt-4">
-          ${staff.staff.suspended ? 
+          ${member.status === 'Suspended' ? 
             `<button class="btn btn-success" onclick="employerTabs.unsuspendUser('${userId}')">Unsuspend User</button>` :
             `<button class="btn btn-warning" onclick="employerTabs.suspendUser('${userId}')">Suspend User</button>`
           }
@@ -1094,22 +1106,28 @@ class EmployerSuiteTabs {
     `, true);
   }
 
-  renderProfileOverview(staff) {
-    return `
-      <div class="profile-overview">
-        <div class="info-grid">
-          <div class="info-item">
-            <strong>Email:</strong> ${staff.profile.email}
+  renderProfileOverview(staff) {email || 'N/A'}
           </div>
           <div class="info-item">
-            <strong>Department:</strong> ${staff.profile.department}
+            <strong>Department:</strong> ${staff.department || 'N/A'}
           </div>
           <div class="info-item">
-            <strong>Base Level:</strong> ${staff.profile.baseLevel}
+            <strong>Base Level:</strong> ${staff.baseLevel || 'N/A'}
           </div>
           <div class="info-item">
-            <strong>Status:</strong> ${staff.profile.status}
+            <strong>Status:</strong> ${staff.status || 'Active'}
           </div>
+          <div class="info-item">
+            <strong>Timezone:</strong> ${staff.timezone || 'N/A'}
+          </div>
+          <div class="info-item">
+            <strong>Country:</strong> ${staff.country || 'N/A'}
+          </div>
+          <div class="info-item">
+            <strong>Hire Date:</strong> ${staff.hireDate || 'N/A'}
+          </div>
+          <div class="info-item">
+            <strong>User ID:</strong> ${staff.userId || staff.id || 'N/A'
           <div class="info-item">
             <strong>Timezone:</strong> ${staff.profile.timezone}
           </div>
