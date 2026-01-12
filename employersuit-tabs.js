@@ -1271,10 +1271,19 @@ class EmployerSuiteTabs {
   
   async navigateToTab(tabName) {
     this.currentTab = tabName;
-    const content = document.getElementById('main-content');
+    
+    // Wait for element to be available (DOM might still be loading)
+    let content = document.getElementById('main-content');
+    let retries = 0;
+    
+    while (!content && retries < 10) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      content = document.getElementById('main-content');
+      retries++;
+    }
     
     if (!content) {
-      console.error('[Employer Suite] main-content element not found');
+      console.error('[Employer Suite] main-content element not found after waiting');
       return;
     }
     
