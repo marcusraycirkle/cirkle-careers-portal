@@ -433,11 +433,21 @@ class EmployerSuiteTabs {
   // ============================
   
   async renderCalendar() {
+    this.currentMonth = this.currentMonth || new Date().getMonth();
+    this.currentYear = this.currentYear || new Date().getFullYear();
+    this.showingSharedCalendar = this.showingSharedCalendar || false;
+    
     return `
       <div class="tab-content">
         <div class="tab-header">
           <h2>📅 Schedule & Calendar</h2>
           <div class="tab-actions">
+            <button class="btn btn-primary" onclick="employerTabs.createEvent()">
+              ➕ Add Event
+            </button>
+            <button class="btn btn-secondary" onclick="employerTabs.toggleCalendarView()">
+              ${this.showingSharedCalendar ? '👤 My Calendar' : '👥 Shared Calendar'}
+            </button>
             <button class="btn btn-secondary" onclick="employerTabs.navigateToTab('home')">
               ← Back
             </button>
@@ -463,24 +473,121 @@ class EmployerSuiteTabs {
               <span class="legend-color" style="width:16px; height:16px; border-radius:4px; background:#ff3b30;"></span>
               <span>Urgent</span>
             </div>
+            
+            <div style="margin-top:2rem; padding-top:1.5rem; border-top:1px solid #dee2e6;">
+              <h4 style="margin-bottom:1rem; font-size:0.9rem;">Quick Navigation</h4>
+              <button class="btn btn-secondary" style="width:100%; margin-bottom:0.5rem;" onclick="employerTabs.goToToday()">📍 Today</button>
+            </div>
           </div>
 
           <div class="calendar-main" style="background:white; border-radius:8px; padding:1.5rem;">
             <div class="calendar-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-              <button class="btn btn-secondary" onclick="alert('Calendar navigation coming soon!')">←</button>
-              <h3 id="calendar-month-year" style="margin:0;">${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
-              <button class="btn btn-secondary" onclick="alert('Calendar navigation coming soon!')">→</button>
+              <button class="btn btn-secondary" onclick="employerTabs.previousMonth()">←</button>
+              <h3 id="calendar-month-year" style="margin:0;">${this.getMonthYearString()}</h3>
+              <button class="btn btn-secondary" onclick="employerTabs.nextMonth()">→</button>
             </div>
             
-            <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
-              <div class="empty-icon" style="font-size:4rem; margin-bottom:1rem;">📅</div>
-              <h3>Calendar View</h3>
-              <p>Full calendar functionality will be available once backend is connected.</p>
+            <div id="calendar-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:0.5rem;">
+              ${this.renderCalendarGrid()}
             </div>
+          </div>
+        </div>
+        
+        <div style="margin-top:1.5rem; background:white; border-radius:8px; padding:1.5rem;">
+          <h3 style="margin-bottom:1rem;">Upcoming Events</h3>
+          <div id="upcoming-events-list">
+            ${this.renderUpcomingEvents()}
           </div>
         </div>
       </div>
     `;
+  }
+  
+  getMonthYearString() {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${monthNames[this.currentMonth]} ${this.currentYear}`;
+  }
+  
+  renderCalendarGrid() {
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+    const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+    const today = new Date();
+    
+    let html = '';
+    
+    // Day headers
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayNames.forEach(day => {
+      html += `<div style="text-align:center; font-weight:600; padding:0.5rem; color:#6e6e73;">${day}</div>`;
+    });
+    
+    // Empty cells before first day
+    for (let i = 0; i < firstDay; i++) {
+      html += `<div style="min-height:80px; background:#f8f9fa; border-radius:8px;"></div>`;
+    }
+    
+    // Days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const isToday = today.getDate() === day && today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
+      const bgColor = isToday ? '#007aff' : 'white';
+      const textColor = isToday ? 'white' : '#000';
+      
+      html += `
+        <div style="min-height:80px; background:${bgColor}; color:${textColor}; border:1px solid #e5e5ea; border-radius:8px; padding:0.5rem; cursor:pointer; transition:all 0.2s;" 
+             onmouseover="this.style.background='#f8f9fa'" 
+             onmouseout="this.style.background='${bgColor}'" 
+             onclick="employerTabs.selectDate(${day})">
+          <div style="font-weight:600;">${day}</div>
+        </div>
+      `;
+    }
+    
+    return html;
+  }
+  
+  renderUpcomingEvents() {
+    return `
+      <div style="text-align:center; padding:2rem; color:#6e6e73;">
+        <div style="font-size:2rem; margin-bottom:0.5rem;">📅</div>
+        <p>No upcoming events</p>
+        <p style="font-size:0.9rem; margin-top:0.5rem;">Events will sync with Firebase when backend is connected</p>
+      </div>
+    `;
+  }
+  
+  toggleCalendarView() {
+    this.showingSharedCalendar = !this.showingSharedCalendar;
+    this.navigateToTab('calendar');
+  }
+  
+  previousMonth() {
+    this.currentMonth--;
+    if (this.currentMonth < 0) {
+      this.currentMonth = 11;
+      this.currentYear--;
+    }
+    this.navigateToTab('calendar');
+  }
+  
+  nextMonth() {
+    this.currentMonth++;
+    if (this.currentMonth > 11) {
+      this.currentMonth = 0;
+      this.currentYear++;
+    }
+    this.navigateToTab('calendar');
+  }
+  
+  goToToday() {
+    const today = new Date();
+    this.currentMonth = today.getMonth();
+    this.currentYear = today.getFullYear();
+    this.navigateToTab('calendar');
+  }
+  
+  selectDate(day) {
+    showNotification(`Selected ${this.getMonthYearString()} ${day}`, 'info');
   }
 
   createEvent() {
@@ -607,18 +714,18 @@ class EmployerSuiteTabs {
   
   async renderDatabase() {
     let staff = { count: 0, staff: [] };
-    let errorMessage = null;
+    let errorMessage = 'TimeClock Backend Not Connected';
     
-    try {
-      staff = await employerAPI.getAllStaff(true);
-      if (!staff || staff.error) {
-        errorMessage = staff?.error || 'Failed to load staff data';
-        staff = { count: 0, staff: [] };
-      }
-    } catch (error) {
-      console.error('Staff database error:', error);
-      errorMessage = 'Unable to connect to staff database';
-    }
+    // Skip API call for now - backend not available
+    // Uncomment when backend is ready:
+    // try {
+    //   staff = await employerAPI.getAllStaff(true);
+    //   if (staff && !staff.error) {
+    //     errorMessage = null;
+    //   }
+    // } catch (error) {
+    //   console.error('Staff database error:', error);
+    // }
 
     return `
       <div class="tab-content">
