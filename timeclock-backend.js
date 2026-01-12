@@ -130,59 +130,90 @@ export default {
 // STAFF DATABASE
 // ============================
 
-async function handleGetAllStaff(request, env) {
-  const { guildId, includeDetails } = await request.json();
+// Google Sheets configuration
+const SHEETS_ID = '1_RE6ahFPZ-k5QbxH96JlzvqwRQ34DbZ7ExMuaYJ2-pY';
+const SHEETS = {
+  EMPLOYEES: 'cirklehrUsers',
+  PAYSLIPS: 'cirklehrPayslips',
+  STRIKES: 'cirklehrStrikes',
+  REPORTS: 'cirklehrReports',
+  ABSENCES: 'cirklehrAbsences'
+};
+
+// Parse CSV data from Google Sheets
+function parseCSV(text) {
+  const lines = text.split('\n').filter(line => line.trim());
+  if (lines.length === 0) return [];
   
-  if (!env.DISCORD_BOT_TOKEN) {
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+  const rows = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] || '';
+    });
+    rows.push(row);
+  }
+  
+  return rows;
+}
+
+async function fetchGoogleSheet(sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch sheet: ${sheetName}`);
+  }
+  
+  const text = await response.text();
+  return parseCSV(text);
+}
+
+async function handleGetAllStaff(request, env) {
+  try {
+    // Fetch employee data from Google Sheets
+    const employees = await fetchGoogleSheet(SHEETS.EMPLOYEES);
+    
+    // Transform to staff format
+    // Columns: A=Name, B=Email, C=Department, D=User ID, E=Timezone, F=Country, G=Hire Date, H=Status, K=Base Level
+    const staff = employees.map((row, index) => {
+      const columns = Object.values(row);
+      return {
+        id: columns[3] || `emp-${index}`, // D: User ID (Discord)
+        name: columns[0] || 'Unknown', // A: Name
+        email: columns[1] || '', // B: Email
+        department: columns[2] || 'Unassigned', // C: Department
+        userId: columns[3] || '', // D: User ID
+        timezone: columns[4] || '', // E: Timezone
+        country: columns[5] || '', // F: Country
+        hireDate: columns[6] || '', // G: Hire Date
+        status: columns[7] || 'Active', // H: Status (Active/Suspended)
+        baseLevel: columns[10] || '', // K: Base Level
+        avatar: null,
+        username: columns[0] || 'Unknown'
+      };
+    }).filter(emp => emp.name && emp.name !== 'Unknown' && emp.name !== '');
+
     return addCorsHeaders(new Response(JSON.stringify({
-      error: 'DISCORD_BOT_TOKEN not configured'
+      success: true,
+      count: staff.length,
+      staff: staff,
+      source: 'Google Sheets'
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    }));
+  } catch (error) {
+    return addCorsHeaders(new Response(JSON.stringify({
+      error: 'Failed to fetch staff from Google Sheets',
+      message: error.message
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     }));
   }
-
-  // Fetch guild members from Discord
-  const response = await fetch(`${DISCORD_API}/guilds/${guildId}/members?limit=1000`, {
-    headers: {
-      'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`
-    }
-  });
-
-  if (!response.ok) {
-    return addCorsHeaders(new Response(JSON.stringify({
-      error: 'Failed to fetch guild members',
-      status: response.status
-    }), {
-      status: response.status,
-      headers: { 'Content-Type': 'application/json' }
-    }));
-  }
-
-  const members = await response.json();
-  
-  // Filter out bots and format staff list
-  const staff = members
-    .filter(member => !member.user.bot)
-    .map(member => ({
-      id: member.user.id,
-      username: member.user.username,
-      globalName: member.user.global_name,
-      discriminator: member.user.discriminator,
-      avatar: member.user.avatar,
-      roles: member.roles,
-      joinedAt: member.joined_at,
-      nickname: member.nick,
-      premiumSince: member.premium_since
-    }));
-
-  return addCorsHeaders(new Response(JSON.stringify({
-    success: true,
-    count: staff.length,
-    staff: staff
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  }));
 }
 
 async function handleGetStaffMember(request, env) {
@@ -248,29 +279,46 @@ async function handleGetStaffMember(request, env) {
 // ============================
 
 async function handleGetPayslips(request, env) {
-  const { userId } = await request.json();
-  
-  if (!env.TIMECLOCK_KV) {
+  try {
+    const { userId } = await request.json();
+    
+    // Fetch payslips from Google Sheets
+    // Columns: A=User ID, B=Blank, C=Payslip Link, D=Comment, E=Person who sent
+    const payslips = await fetchGoogleSheet(SHEETS.PAYSLIPS);
+    
+    const formattedPayslips = payslips.map((row, index) => {
+      const columns = Object.values(row);
+      return {
+        id: `payslip-${index}`,
+        userId: columns[0] || '',
+        link: columns[2] || '',
+        comment: columns[3] || '',
+        sentBy: columns[4] || '',
+        createdAt: new Date().toISOString()
+      };
+    }).filter(p => p.userId);
+
+    // Filter by userId if provided
+    const filtered = userId 
+      ? formattedPayslips.filter(p => p.userId === userId)
+      : formattedPayslips;
+
     return addCorsHeaders(new Response(JSON.stringify({
       success: true,
-      payslips: [],
-      message: 'KV storage not configured'
+      count: filtered.length,
+      payslips: filtered
     }), {
       headers: { 'Content-Type': 'application/json' }
     }));
+  } catch (error) {
+    return addCorsHeaders(new Response(JSON.stringify({
+      error: 'Failed to fetch payslips',
+      message: error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    }));
   }
-
-  const key = userId ? `payslips:${userId}` : 'payslips:all';
-  const payslipsData = await env.TIMECLOCK_KV.get(key);
-  const payslips = payslipsData ? JSON.parse(payslipsData) : [];
-
-  return addCorsHeaders(new Response(JSON.stringify({
-    success: true,
-    count: payslips.length,
-    payslips: payslips
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  }));
 }
 
 async function handleAddPayslip(request, env) {
@@ -314,32 +362,50 @@ async function handleAddPayslip(request, env) {
 // ============================
 
 async function handleGetDisciplinaries(request, env) {
-  const { userId, type } = await request.json();
-  
-  if (!env.TIMECLOCK_KV) {
+  try {
+    const { userId, type } = await request.json();
+    
+    // Fetch disciplinaries from Google Sheets
+    // Columns: A=User ID, B=Blank, C=Discipline Type, D=Description, E=Employer who sent
+    const disciplinaries = await fetchGoogleSheet(SHEETS.STRIKES);
+    
+    const formatted = disciplinaries.map((row, index) => {
+      const columns = Object.values(row);
+      return {
+        id: `strike-${index}`,
+        userId: columns[0] || '',
+        type: columns[2] || '',
+        description: columns[3] || '',
+        issuedBy: columns[4] || '',
+        issuedAt: new Date().toISOString()
+      };
+    }).filter(d => d.userId);
+
+    // Filter by userId and type if provided
+    let filtered = userId 
+      ? formatted.filter(d => d.userId === userId)
+      : formatted;
+    
+    if (type) {
+      filtered = filtered.filter(d => d.type === type);
+    }
+
     return addCorsHeaders(new Response(JSON.stringify({
       success: true,
-      disciplinaries: []
+      count: filtered.length,
+      disciplinaries: filtered
     }), {
       headers: { 'Content-Type': 'application/json' }
     }));
+  } catch (error) {
+    return addCorsHeaders(new Response(JSON.stringify({
+      error: 'Failed to fetch disciplinaries',
+      message: error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    }));
   }
-
-  const key = userId ? `disciplinaries:${userId}` : 'disciplinaries:all';
-  const data = await env.TIMECLOCK_KV.get(key);
-  let disciplinaries = data ? JSON.parse(data) : [];
-
-  if (type) {
-    disciplinaries = disciplinaries.filter(d => d.type === type);
-  }
-
-  return addCorsHeaders(new Response(JSON.stringify({
-    success: true,
-    count: disciplinaries.length,
-    disciplinaries: disciplinaries
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  }));
 }
 
 async function handleIssueDisciplinary(request, env) {
@@ -383,35 +449,51 @@ async function handleIssueDisciplinary(request, env) {
 // ============================
 
 async function handleGetReports(request, env) {
-  const { userId, type } = await request.json();
-  
-  if (!env.TIMECLOCK_KV) {
+  try {
+    const { userId, type } = await request.json();
+    
+    // Fetch reports from Google Sheets
+    // Columns: A=User ID, B=Blank, C=Report Type, D=Comment, E=Selector, F=Employer who sent
+    const reports = await fetchGoogleSheet(SHEETS.REPORTS);
+    
+    const formatted = reports.map((row, index) => {
+      const columns = Object.values(row);
+      return {
+        id: `report-${index}`,
+        userId: columns[0] || '',
+        type: columns[2] || '',
+        comment: columns[3] || '',
+        selector: columns[4] || '', // Commendation, Negative Behaviour, Disruptive, Monthly Report
+        submittedBy: columns[5] || '',
+        submittedAt: new Date().toISOString()
+      };
+    }).filter(r => r.userId);
+
+    // Filter by userId and type if provided
+    let filtered = userId 
+      ? formatted.filter(r => r.userId === userId)
+      : formatted;
+    
+    if (type) {
+      filtered = filtered.filter(r => r.type === type || r.selector === type);
+    }
+
     return addCorsHeaders(new Response(JSON.stringify({
       success: true,
-      reports: []
+      count: filtered.length,
+      reports: filtered
     }), {
       headers: { 'Content-Type': 'application/json' }
     }));
+  } catch (error) {
+    return addCorsHeaders(new Response(JSON.stringify({
+      error: 'Failed to fetch reports',
+      message: error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    }));
   }
-
-  const key = 'reports:all';
-  const data = await env.TIMECLOCK_KV.get(key);
-  let reports = data ? JSON.parse(data) : [];
-
-  if (userId) {
-    reports = reports.filter(r => r.userId === userId);
-  }
-  if (type) {
-    reports = reports.filter(r => r.type === type);
-  }
-
-  return addCorsHeaders(new Response(JSON.stringify({
-    success: true,
-    count: reports.length,
-    reports: reports
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  }));
 }
 
 async function handleSubmitReport(request, env) {
@@ -555,35 +637,53 @@ async function handleRejectRequest(request, env) {
 // ============================
 
 async function handleGetAbsences(request, env) {
-  const { userId, status } = await request.json();
-  
-  if (!env.TIMECLOCK_KV) {
+  try {
+    const { userId, status } = await request.json();
+    
+    // Fetch absences from Google Sheets
+    // Columns: A=Name, B=Start Date, C=End Date, D=Reason, E=Total Days, F=Comment, G=Approved/Denied, H=User ID
+    const absences = await fetchGoogleSheet(SHEETS.ABSENCES);
+    
+    const formatted = absences.map((row, index) => {
+      const columns = Object.values(row);
+      return {
+        id: `absence-${index}`,
+        name: columns[0] || '',
+        startDate: columns[1] || '',
+        endDate: columns[2] || '',
+        reason: columns[3] || '',
+        totalDays: columns[4] || '',
+        comment: columns[5] || '',
+        status: columns[6] || 'Pending', // Approved/Denied
+        userId: columns[7] || ''
+      };
+    }).filter(a => a.userId);
+
+    // Filter by userId and status if provided
+    let filtered = userId 
+      ? formatted.filter(a => a.userId === userId)
+      : formatted;
+    
+    if (status) {
+      filtered = filtered.filter(a => a.status === status);
+    }
+
     return addCorsHeaders(new Response(JSON.stringify({
       success: true,
-      absences: []
+      count: filtered.length,
+      absences: filtered
     }), {
       headers: { 'Content-Type': 'application/json' }
     }));
+  } catch (error) {
+    return addCorsHeaders(new Response(JSON.stringify({
+      error: 'Failed to fetch absences',
+      message: error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    }));
   }
-
-  const key = 'absences:all';
-  const data = await env.TIMECLOCK_KV.get(key);
-  let absences = data ? JSON.parse(data) : [];
-
-  if (userId) {
-    absences = absences.filter(a => a.userId === userId);
-  }
-  if (status) {
-    absences = absences.filter(a => a.status === status);
-  }
-
-  return addCorsHeaders(new Response(JSON.stringify({
-    success: true,
-    count: absences.length,
-    absences: absences
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  }));
 }
 
 async function handleApproveAbsence(request, env) {
