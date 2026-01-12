@@ -3,11 +3,9 @@ main = "timeclock-backend.js"
 compatibility_date = "2024-01-01"
 
 # KV Namespace for data storage
-# Run: wrangler kv:namespace create "TIMECLOCK_KV"
-# Then replace the id below with the output
 [[kv_namespaces]]
 binding = "TIMECLOCK_KV"
-id = "YOUR_KV_NAMESPACE_ID_HERE"  # Replace this after creating KV namespace
+id = "329fbd09a7d940c5b9aa192b3d4de370"
 
 # Public environment variables
 [vars]
