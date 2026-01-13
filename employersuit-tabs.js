@@ -1069,6 +1069,9 @@ class EmployerSuiteTabs {
     const staff = await employerAPI.getStaffMember(userId, true);
     
     const member = staff.staff || staff.user || {};
+    // Store for tab switching
+    this.currentProfileData = member;
+    
     const avatarUrl = member.avatar 
       ? `https://cdn.discordapp.com/avatars/${member.id}/${member.avatar}.png`
       : 'https://cdn.discordapp.com/embed/avatars/0.png';
@@ -1200,6 +1203,255 @@ class EmployerSuiteTabs {
       showNotification('Database synced successfully', 'success');
     } catch (error) {
       showNotification('Failed to sync database', 'error');
+    }
+  }
+
+  // ============================
+  // STAFF PROFILE TAB SWITCHING
+  // ============================
+  
+  switchProfileTab(tabName) {
+    // Update active tab button
+    const tabButtons = document.querySelectorAll('.profile-tabs .tab-btn');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Get staff data from the current profile (stored temporarily)
+    const profileContent = document.getElementById('profile-tab-content');
+    const staffData = this.currentProfileData || {};
+    
+    // Render appropriate tab content
+    let html = '';
+    switch (tabName) {
+      case 'overview':
+        html = this.renderProfileOverview(staffData);
+        break;
+      case 'payslips':
+        html = this.renderProfilePayslips(staffData);
+        break;
+      case 'disciplinaries':
+        html = this.renderProfileDisciplinaries(staffData);
+        break;
+      case 'reports':
+        html = this.renderProfileReports(staffData);
+        break;
+      default:
+        html = this.renderProfileOverview(staffData);
+    }
+    
+    profileContent.innerHTML = html;
+  }
+  
+  renderProfilePayslips(staff) {
+    const payslips = staff.payslips || [];
+    
+    if (payslips.length === 0) {
+      return `
+        <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
+          <div class="empty-icon" style="font-size:3rem; margin-bottom:1rem;">💰</div>
+          <h3>No payslips found</h3>
+          <p>This staff member has no payslips recorded yet.</p>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="payslips-list">
+        <div style="margin-bottom:1rem;">
+          <button class="btn btn-primary" onclick="employerTabs.createPayslip('${staff.userId || staff.id}')">
+            ➕ Generate Payslip
+          </button>
+        </div>
+        ${payslips.map(payslip => `
+          <div class="payslip-item" style="background:#f8f9fa; padding:1rem; border-radius:8px; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h4>${payslip.period || 'Payslip'}</h4>
+              <p style="margin:0.25rem 0; color:#6e6e73;">Amount: $${payslip.amount || '0.00'}</p>
+              <p style="margin:0.25rem 0; color:#6e6e73; font-size:0.85rem;">Generated: ${new Date(payslip.createdAt).toLocaleString()}</p>
+            </div>
+            <div>
+              <button class="btn btn-secondary" onclick="employerTabs.viewPayslip('${payslip.id}')">View</button>
+              <button class="btn btn-secondary" onclick="employerTabs.downloadPayslip('${payslip.id}')">Download</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  
+  renderProfileDisciplinaries(staff) {
+    const disciplinaries = staff.disciplinaries || [];
+    
+    if (disciplinaries.length === 0) {
+      return `
+        <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
+          <div class="empty-icon" style="font-size:3rem; margin-bottom:1rem;">⚠️</div>
+          <h3>No disciplinary records</h3>
+          <p>This staff member has no disciplinary actions recorded.</p>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="disciplinaries-list">
+        <div style="margin-bottom:1rem;">
+          <button class="btn btn-warning" onclick="employerTabs.createDisciplinary('${staff.userId || staff.id}')">
+            ➕ Add Disciplinary Action
+          </button>
+        </div>
+        ${disciplinaries.map(disc => `
+          <div class="disciplinary-item" style="background:#fff3cd; border-left:4px solid #ffc107; padding:1rem; border-radius:8px; margin-bottom:1rem;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+              <h4 style="margin:0;">${disc.type || 'Disciplinary Action'}</h4>
+              <span style="color:#6e6e73; font-size:0.9rem;">${new Date(disc.createdAt).toLocaleDateString()}</span>
+            </div>
+            <p style="margin:0.5rem 0; color:#333;">${disc.reason || 'No reason provided'}</p>
+            <p style="margin:0.5rem 0 0 0; color:#6e6e73; font-size:0.85rem;">By: ${disc.issuedBy || 'Unknown'}</p>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  
+  renderProfileReports(staff) {
+    const reports = staff.reports || [];
+    
+    if (reports.length === 0) {
+      return `
+        <div class="empty-state" style="text-align:center; padding:3rem; color:#6e6e73;">
+          <div class="empty-icon" style="font-size:3rem; margin-bottom:1rem;">📊</div>
+          <h3>No reports available</h3>
+          <p>No reports have been filed for this staff member.</p>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="reports-list">
+        <div style="margin-bottom:1rem;">
+          <button class="btn btn-primary" onclick="employerTabs.createReport('${staff.userId || staff.id}')">
+            ➕ Create Report
+          </button>
+        </div>
+        ${reports.map(report => `
+          <div class="report-item" style="background:#f8f9fa; padding:1rem; border-radius:8px; margin-bottom:1rem;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+              <h4 style="margin:0;">${report.title || 'Report'}</h4>
+              <span style="color:#6e6e73; font-size:0.9rem;">${new Date(report.createdAt).toLocaleDateString()}</span>
+            </div>
+            <p style="margin:0.5rem 0; color:#333;">${report.description || 'No description'}</p>
+            <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+              <button class="btn btn-secondary btn-sm" onclick="employerTabs.viewReport('${report.id}')">View Full Report</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  
+  async createPayslip(userId) {
+    showModal(`
+      <h2>💰 Generate Payslip</h2>
+      <form id="payslip-form" style="display:grid; gap:1rem;">
+        <div>
+          <label>Pay Period:</label>
+          <input type="text" id="payslip-period" class="form-control" placeholder="e.g., January 2026" required>
+        </div>
+        <div>
+          <label>Amount ($):</label>
+          <input type="number" id="payslip-amount" class="form-control" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+          <label>Hours Worked:</label>
+          <input type="number" id="payslip-hours" class="form-control" placeholder="0" required>
+        </div>
+        <div>
+          <label>Notes:</label>
+          <textarea id="payslip-notes" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="employerTabs.submitPayslip('${userId}')">Generate</button>
+        </div>
+      </form>
+    `);
+  }
+  
+  async submitPayslip(userId) {
+    const period = document.getElementById('payslip-period').value;
+    const amount = document.getElementById('payslip-amount').value;
+    const hours = document.getElementById('payslip-hours').value;
+    const notes = document.getElementById('payslip-notes').value;
+    
+    if (!period || !amount || !hours) {
+      showNotification('Please fill in all required fields', 'error');
+      return;
+    }
+    
+    const result = await employerAPI.createPayslip(userId, {
+      period,
+      amount,
+      hours,
+      notes,
+      createdAt: new Date().toISOString()
+    });
+    
+    if (result.success) {
+      showNotification('Payslip generated successfully', 'success');
+      hideModal();
+      this.openStaffProfile(userId);
+    } else {
+      showNotification('Failed to generate payslip', 'error');
+    }
+  }
+  
+  async createDisciplinary(userId) {
+    showModal(`
+      <h2>⚠️ Create Disciplinary Action</h2>
+      <form id="disciplinary-form" style="display:grid; gap:1rem;">
+        <div>
+          <label>Type:</label>
+          <select id="disciplinary-type" class="form-control" required>
+            <option value="Warning">Warning</option>
+            <option value="Final Warning">Final Warning</option>
+            <option value="Suspension">Suspension</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label>Reason:</label>
+          <textarea id="disciplinary-reason" class="form-control" rows="4" placeholder="Describe the reason for this disciplinary action..." required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+          <button type="button" class="btn btn-warning" onclick="employerTabs.submitDisciplinary('${userId}')">Submit</button>
+        </div>
+      </form>
+    `);
+  }
+  
+  async submitDisciplinary(userId) {
+    const type = document.getElementById('disciplinary-type').value;
+    const reason = document.getElementById('disciplinary-reason').value;
+    
+    if (!reason) {
+      showNotification('Please provide a reason', 'error');
+      return;
+    }
+    
+    const result = await employerAPI.createDisciplinary(userId, {
+      type,
+      reason,
+      issuedBy: employerAPI.currentUser.name,
+      createdAt: new Date().toISOString()
+    });
+    
+    if (result.success) {
+      showNotification('Disciplinary action recorded', 'success');
+      hideModal();
+      this.openStaffProfile(userId);
+    } else {
+      showNotification('Failed to create disciplinary action', 'error');
     }
   }
 

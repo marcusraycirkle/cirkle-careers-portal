@@ -452,6 +452,81 @@ export default {
         }));
       }
 
+      // ============================
+      // EMPLOYER SUITE - NOTEPAD ENDPOINTS
+      // ============================
+      
+      // List notes for a user
+      if (path === '/api/employersuit/notes/list' && request.method === 'POST') {
+        const body = await request.json();
+        const userId = sanitizeInput(body.userId);
+        
+        const notesData = await fetch(`${FIREBASE_CONFIG.databaseURL}/employersuit/notes/${userId}.json`);
+        const notes = await notesData.json();
+        
+        const notesList = notes ? Object.entries(notes).map(([id, note]) => ({
+          id,
+          ...note
+        })) : [];
+        
+        return addSecurityHeaders(new Response(JSON.stringify({ 
+          notes: notesList,
+          count: notesList.length
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      
+      // Save note
+      if (path === '/api/employersuit/notes/save' && request.method === 'POST') {
+        const body = await request.json();
+        const userId = sanitizeInput(body.userId);
+        const noteId = sanitizeInput(body.noteId);
+        const title = sanitizeInput(body.title);
+        const content = sanitizeInput(body.content);
+        
+        const noteData = {
+          title,
+          content,
+          lastModified: body.lastModified || new Date().toISOString()
+        };
+        
+        const response = await fetch(
+          `${FIREBASE_CONFIG.databaseURL}/employersuit/notes/${userId}/${noteId}.json`,
+          {
+            method: 'PUT',
+            body: JSON.stringify(noteData)
+          }
+        );
+        
+        const data = await response.json();
+        return addSecurityHeaders(new Response(JSON.stringify({ 
+          success: true,
+          noteId,
+          data
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      
+      // Delete note
+      if (path === '/api/employersuit/notes/delete' && request.method === 'POST') {
+        const body = await request.json();
+        const userId = sanitizeInput(body.userId);
+        const noteId = sanitizeInput(body.noteId);
+        
+        await fetch(
+          `${FIREBASE_CONFIG.databaseURL}/employersuit/notes/${userId}/${noteId}.json`,
+          { method: 'DELETE' }
+        );
+        
+        return addSecurityHeaders(new Response(JSON.stringify({ 
+          success: true 
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
       // Not found
       return addSecurityHeaders(new Response(JSON.stringify({ 
         error: 'Endpoint not found',

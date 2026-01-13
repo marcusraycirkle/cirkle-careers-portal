@@ -105,6 +105,16 @@ class EmployerSuiteAPI {
     });
     return await response.json();
   }
+  
+  async createPayslip(userId, payslipData) {
+    // Wrapper method for compatibility with tabs.js
+    return await this.addPayslip(
+      userId, 
+      payslipData.period, 
+      payslipData.amount, 
+      'USD'
+    );
+  }
 
   // ============================
   // DISCIPLINARIES
@@ -120,6 +130,18 @@ class EmployerSuiteAPI {
       body: JSON.stringify({ userId, type })
     });
     return await response.json();
+  }
+
+  async createDisciplinary(userId, disciplinaryData) {
+    // Wrapper method for compatibility with tabs.js
+    return await this.issueDisciplinary(
+      userId,
+      disciplinaryData.type,
+      disciplinaryData.reason,
+      disciplinaryData.reason, // Use reason as comment
+      'medium',
+      true
+    );
   }
 
   async issueDisciplinary(userId, type, reason, comment, severity, sendNotification = true) {
