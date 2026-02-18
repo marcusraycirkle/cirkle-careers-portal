@@ -16,7 +16,7 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActivityType } = require('disco
 
 // Configuration from environment variables (SECURE)
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const CIRKLE_CHANNEL_ID = process.env.CIRKLE_CHANNEL_ID || '1364978443292377211';
+const CIRKLE_CHANNEL_ID = process.env.CIRKLE_CHANNEL_ID || '1473377571482894478';
 const AER_LINGUS_CHANNEL_ID = process.env.AER_LINGUS_CHANNEL_ID || '1395759805305716848';
 
 // Debug logging
