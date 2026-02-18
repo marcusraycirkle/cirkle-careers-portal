@@ -1071,14 +1071,14 @@ async function broadcastAnnouncement() {
     };
     
     // Call API endpoint
-    const response = await fetch(\`\${BACKEND_URL}/api/broadcast-announcement\`, {
+    const response = await fetch(`${BACKEND_URL}/api/broadcast-announcement`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(announcementData)
     });
     
     if (!response.ok) {
-      throw new Error(\`API error: \${response.status}\`);
+      throw new Error(`API error: ${response.status}`);
     }
     
     const result = await response.json();
@@ -1088,18 +1088,18 @@ async function broadcastAnnouncement() {
     
     // Show success message
     hidePopup();
-    showPopup(\`
+    showPopup(`
       <div class="success-screen">
         <div class="tick">✓</div>
         <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Announcement Published!</h2>
-        <p style="font-size:1rem; color:#6e6e73; margin-bottom:1.5rem;">Your announcement has been sent to <strong>\${recipientCount} pending candidate\${recipientCount !== 1 ? 's' : ''}</strong></p>
+        <p style="font-size:1rem; color:#6e6e73; margin-bottom:1.5rem;">Your announcement has been sent to <strong>${recipientCount} pending candidate${recipientCount !== 1 ? 's' : ''}</strong></p>
         <p style="font-size:0.95rem; color:#6e6e73; margin-bottom:2rem;">A log of this announcement has been posted to the announcements channel.</p>
         <button class="big" onclick="hidePopup()" style="padding:1rem 2rem;">Close</button>
       </div>
-    \`);
+    `);
   } catch (error) {
     console.error('Error broadcasting announcement:', error);
-    showNotification(\`Failed to publish announcement: \${error.message}\`);
+    showNotification(`Failed to publish announcement: ${error.message}`);
     publishBtn.disabled = false;
     publishBtn.textContent = 'Publish to Pending Candidates';
   }
@@ -1110,8 +1110,8 @@ async function logAnnouncementToChannel(title, content, recipientCount, senderNa
     const logChannelId = '1473734843618558006';
     
     const embed = {
-      title: \`📢 Announcement Broadcast Log\`,
-      description: \`An announcement has been published to pending candidates.\`,
+      title: `📢 Announcement Broadcast Log`,
+      description: `An announcement has been published to pending candidates.`,
       color: 0x5856d6,
       fields: [
         {
@@ -1131,7 +1131,7 @@ async function logAnnouncementToChannel(title, content, recipientCount, senderNa
         },
         {
           name: '📊 Recipients',
-          value: \`\${recipientCount} candidate\${recipientCount !== 1 ? 's' : ''}\`,
+          value: `${recipientCount} candidate${recipientCount !== 1 ? 's' : ''}`,
           inline: true
         },
         {
@@ -1147,7 +1147,7 @@ async function logAnnouncementToChannel(title, content, recipientCount, senderNa
     };
     
     // Call Discord logging endpoint
-    await fetch(\`\${BACKEND_URL}/api/discord/channel-message\`, {
+    await fetch(`${BACKEND_URL}/api/discord/channel-message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
