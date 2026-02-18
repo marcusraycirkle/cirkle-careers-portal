@@ -17,7 +17,7 @@ Create a `.env` file in the root directory:
 
 ```bash
 DISCORD_BOT_TOKEN=your_actual_bot_token_here
-CIRKLE_CHANNEL_ID=1364978443292377211
+CIRKLE_CHANNEL_ID=1473377571482894478
 AER_LINGUS_CHANNEL_ID=1395759805305716848
 SENTINEL_MODE=enabled
 ```
@@ -120,7 +120,7 @@ pm2 save
 
 ### 5. Bot-Based Notifications
 - ✅ Replaced webhooks with Discord bot channel posting
-- ✅ Channels: Cirkle (1364978443292377211), Aer Lingus (1395759805305716848)
+- ✅ Channels: Cirkle (1473377571482894478), Aer Lingus (1395759805305716848)
 - ✅ Role pings preserved
 - ✅ Embedded rich notifications
 

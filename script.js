@@ -795,10 +795,10 @@ async function submitApplication(jobId) {
       
       // 🛡️ SENTINEL Security: Send to Discord via bot channel posting (replaces webhooks)
       const COMPANY_CHANNELS = {
-        'Cirkle Development': '1364978443292377211',
-        'Cirkle Group Careers': '1364978443292377211',
+        'Cirkle Development': '1473377571482894478',
+        'Cirkle Group Careers': '1473377571482894478',
         'Aer Lingus': '1395759805305716848',
-        'DevDen': '1364978443292377211' // Using Cirkle channel for now
+        'DevDen': '1473377571482894478' // Using Cirkle channel for now
       };
       
       const COMPANY_ROLE_PINGS = {
