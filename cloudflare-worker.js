@@ -322,6 +322,195 @@ export default {
         }
       }
 
+      // ============================
+      // BROADCAST ANNOUNCEMENT
+      // ============================
+
+      if (path === '/api/broadcast-announcement' && request.method === 'POST') {
+        if (!DISCORD_BOT_TOKEN) {
+          return addSecurityHeaders(new Response(JSON.stringify({ 
+            success: false, 
+            message: 'Discord bot not configured',
+            sentinel: 'bot_not_configured'
+          }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+
+        const announcementData = await request.json();
+        const { title, content, senderName, candidates = [], recipientCount = 0 } = announcementData;
+        
+        if (!title || !content || !candidates.length) {
+          return addSecurityHeaders(new Response(JSON.stringify({ 
+            success: false, 
+            message: 'Missing required fields: title, content, or candidates',
+            sentinel: 'input_validation_failed'
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+
+        try {
+          let successCount = 0;
+          let failureCount = 0;
+          const failedRecipients = [];
+
+          // Create the announcement embed
+          const announcementEmbed = {
+            title: `📢 ${title}`,
+            description: content,
+            color: 0x5856d6,
+            footer: {
+              text: `Message from ${senderName || 'Admin'} | 🛡️ Protected by SENTINEL Security`
+            },
+            timestamp: new Date().toISOString()
+          };
+
+          // Send DM to each candidate
+          for (const candidate of candidates) {
+            if (!candidate.discordId) {
+              failureCount++;
+              failedRecipients.push(`${candidate.name} (no Discord ID)`);
+              continue;
+            }
+
+            try {
+              // Create DM channel
+              const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ recipient_id: candidate.discordId })
+              });
+              
+              const dmChannel = await dmChannelResponse.json();
+              
+              if (dmChannel.id) {
+                // Send message
+                const messageResponse = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ embeds: [announcementEmbed] })
+                });
+                
+                if (messageResponse.ok) {
+                  successCount++;
+                  console.log(`[SENTINEL] ✅ Announcement sent to ${candidate.name}`);
+                } else {
+                  failureCount++;
+                  failedRecipients.push(candidate.name);
+                  console.error(`[SENTINEL] ❌ Failed to send announcement to ${candidate.name}`);
+                }
+              } else {
+                failureCount++;
+                failedRecipients.push(candidate.name);
+                console.error(`[SENTINEL] ❌ Could not create DM channel for ${candidate.name}`);
+              }
+            } catch (candidateError) {
+              failureCount++;
+              failedRecipients.push(candidate.name);
+              console.error(`[SENTINEL] ❌ Error sending to ${candidate.name}:`, candidateError.message);
+            }
+          }
+
+          // Log announcement to channel
+          const logChannelId = '1473734843618558006';
+          const logEmbed = {
+            title: '📢 Announcement Broadcast Log',
+            description: 'An announcement has been published to candidates.',
+            color: 0x5856d6,
+            fields: [
+              {
+                name: '📌 Title',
+                value: title,
+                inline: false
+              },
+              {
+                name: '💬 Message',
+                value: content.substring(0, 1000) + (content.length > 1000 ? '...' : ''),
+                inline: false
+              },
+              {
+                name: '👤 Published by',
+                value: senderName || 'Unknown',
+                inline: true
+              },
+              {
+                name: '📊 Total Recipients',
+                value: `${recipientCount}`,
+                inline: true
+              },
+              {
+                name: '✅ Successfully sent',
+                value: `${successCount}`,
+                inline: true
+              },
+              {
+                name: '❌ Failed',
+                value: `${failureCount}`,
+                inline: true
+              }
+            ],
+            timestamp: new Date().toISOString(),
+            footer: {
+              text: '🛡️ Protected by SENTINEL Security'
+            }
+          };
+
+          if (failedRecipients.length > 0) {
+            logEmbed.fields.push({
+              name: '⚠️ Failed Recipients',
+              value: failedRecipients.join('\n').substring(0, 1000),
+              inline: false
+            });
+          }
+
+          // Post log to channel
+          try {
+            await fetch(`https://discord.com/api/v10/channels/${logChannelId}/messages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ embeds: [logEmbed] })
+            });
+            console.log(`[SENTINEL] 📝 Announcement logged to channel ${logChannelId}`);
+          } catch (logError) {
+            console.error('[SENTINEL] ❌ Failed to log announcement to channel:', logError.message);
+            // Don't fail the response if logging fails
+          }
+
+          return addSecurityHeaders(new Response(JSON.stringify({ 
+            success: true,
+            totalCandidates: candidates.length,
+            successCount,
+            failureCount,
+            failedRecipients,
+            sentinel: 'broadcast_complete'
+          }), {
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        } catch (error) {
+          console.error('[SENTINEL] Broadcast announcement error:', error);
+          return addSecurityHeaders(new Response(JSON.stringify({ 
+            success: false, 
+            error: error.message,
+            sentinel: 'broadcast_error'
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+      }
+
       // ==========================
       // FIREBASE PROXY ENDPOINTS
       // ==========================

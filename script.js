@@ -966,6 +966,203 @@ function checkStatus() {
   }
 }
 
+// ============================
+// ANNOUNCEMENT FUNCTIONS
+// ============================
+
+function openAnnouncementModal() {
+  const modalContent = `
+    <div style="max-width:600px; margin:auto;">
+      <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1.5rem;">📢 Broadcast Announcement</h2>
+      
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Announcement Title</label>
+        <input type="text" id="announcement-title" placeholder="e.g., Important Update About Your Application" 
+          style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; font-size:1rem; box-sizing:border-box;">
+      </div>
+      
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Announcement Message</label>
+        <textarea id="announcement-content" placeholder="Enter your announcement message here..." 
+          style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; font-size:1rem; min-height:200px; resize:vertical; font-family:inherit; box-sizing:border-box;"></textarea>
+        <p style="font-size:0.85rem; color:#6e6e73; margin-top:0.5rem;">This message will be sent via Discord DM to all pending candidates.</p>
+      </div>
+      
+      <div style="background:#f5f5f7; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
+        <p style="font-weight:600; margin-bottom:0.5rem;">Preview:</p>
+        <div id="announcement-preview" style="background:#fff; padding:0.75rem; border-radius:6px; color:#6e6e73; font-size:0.9rem; min-height:100px;">
+          <p style="color:#999; text-align:center; padding:1rem;">Your message preview will appear here...</p>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:1rem; justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="hidePopup()">Cancel</button>
+        <button class="big" id="publish-btn" onclick="broadcastAnnouncement()" style="background:#5856d6;">Publish to Pending Candidates</button>
+      </div>
+    </div>
+  `;
+  
+  showPopup(modalContent);
+  
+  // Add real-time preview
+  const titleInput = document.getElementById('announcement-title');
+  const contentInput = document.getElementById('announcement-content');
+  const preview = document.getElementById('announcement-preview');
+  
+  const updatePreview = () => {
+    const title = titleInput?.value || 'Announcement Title';
+    const content = contentInput?.value || 'Your message will appear here...';
+    preview.innerHTML = `<p style="font-weight:600; margin-bottom:0.5rem; color:#000;">${title}</p><p>${content}</p>`;
+  };
+  
+  titleInput?.addEventListener('input', updatePreview);
+  contentInput?.addEventListener('input', updatePreview);
+}
+
+async function broadcastAnnouncement() {
+  const title = document.getElementById('announcement-title')?.value;
+  const content = document.getElementById('announcement-content')?.value;
+  const publishBtn = document.getElementById('publish-btn');
+  
+  if (!title || !content) {
+    showNotification('Please fill in both title and message');
+    return;
+  }
+  
+  if (!currentUser) {
+    showNotification('Error: User not authenticated');
+    return;
+  }
+  
+  // Disable button and show loading state
+  publishBtn.disabled = true;
+  publishBtn.textContent = '⏳ Publishing...';
+  
+  try {
+    // Count pending candidates
+    const currentUserFirstName = (currentUser.name || '').split(' ')[0].trim();
+    const pendingCandidates = applications.filter(app => {
+      const job = jobs.find(j => j.id === app.jobId);
+      if (!job || !job.assigned) return false;
+      return job.assigned.some(assignedName => {
+        const trimmedAssigned = (assignedName || '').toString().trim();
+        const assignedFirstName = trimmedAssigned.split(' ')[0];
+        return trimmedAssigned === (currentUser.name || '').toString().trim() || 
+               assignedFirstName === currentUserFirstName;
+      });
+    });
+    
+    const recipientCount = pendingCandidates.length;
+    
+    // Prepare announcement data
+    const announcementData = {
+      title,
+      content,
+      senderName: currentUser.name || currentUser.username || 'Unknown',
+      senderId: currentUser.id,
+      sentAt: new Date().toISOString(),
+      recipientCount,
+      candidates: pendingCandidates.map(app => ({
+        id: app.id,
+        name: app.data?.name || 'Unknown',
+        discordId: app.data?.discord,
+        email: app.data?.email
+      }))
+    };
+    
+    // Call API endpoint
+    const response = await fetch(\`\${BACKEND_URL}/api/broadcast-announcement\`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(announcementData)
+    });
+    
+    if (!response.ok) {
+      throw new Error(\`API error: \${response.status}\`);
+    }
+    
+    const result = await response.json();
+    
+    // Log to Discord
+    await logAnnouncementToChannel(title, content, recipientCount, currentUser.name);
+    
+    // Show success message
+    hidePopup();
+    showPopup(\`
+      <div class="success-screen">
+        <div class="tick">✓</div>
+        <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Announcement Published!</h2>
+        <p style="font-size:1rem; color:#6e6e73; margin-bottom:1.5rem;">Your announcement has been sent to <strong>\${recipientCount} pending candidate\${recipientCount !== 1 ? 's' : ''}</strong></p>
+        <p style="font-size:0.95rem; color:#6e6e73; margin-bottom:2rem;">A log of this announcement has been posted to the announcements channel.</p>
+        <button class="big" onclick="hidePopup()" style="padding:1rem 2rem;">Close</button>
+      </div>
+    \`);
+  } catch (error) {
+    console.error('Error broadcasting announcement:', error);
+    showNotification(\`Failed to publish announcement: \${error.message}\`);
+    publishBtn.disabled = false;
+    publishBtn.textContent = 'Publish to Pending Candidates';
+  }
+}
+
+async function logAnnouncementToChannel(title, content, recipientCount, senderName) {
+  try {
+    const logChannelId = '1473734843618558006';
+    
+    const embed = {
+      title: \`📢 Announcement Broadcast Log\`,
+      description: \`An announcement has been published to pending candidates.\`,
+      color: 0x5856d6,
+      fields: [
+        {
+          name: '📌 Title',
+          value: title,
+          inline: false
+        },
+        {
+          name: '💬 Message',
+          value: content.substring(0, 1000) + (content.length > 1000 ? '...' : ''),
+          inline: false
+        },
+        {
+          name: '👤 Published by',
+          value: senderName || 'Unknown',
+          inline: true
+        },
+        {
+          name: '📊 Recipients',
+          value: \`\${recipientCount} candidate\${recipientCount !== 1 ? 's' : ''}\`,
+          inline: true
+        },
+        {
+          name: '⏰ Time',
+          value: new Date().toLocaleString(),
+          inline: true
+        }
+      ],
+      timestamp: new Date().toISOString(),
+      footer: {
+        text: '🛡️ Announcement logged by system'
+      }
+    };
+    
+    // Call Discord logging endpoint
+    await fetch(\`\${BACKEND_URL}/api/discord/channel-message\`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channelId: logChannelId,
+        message: { embeds: [embed] }
+      })
+    });
+    
+    console.log('Announcement logged to Discord channel');
+  } catch (error) {
+    console.error('Error logging announcement to Discord:', error);
+    // Don't throw - logging failure shouldn't block the announcement
+  }
+}
+
 function renderInformation() {
   const main = document.getElementById('main-content');
   if (main) {
@@ -1239,10 +1436,13 @@ function renderEmployerSubPage(sub) {
       
       subContent = `
         <h2 style="font-size:2rem; font-weight:700; margin-bottom:1.5rem;">Candidate Management</h2>
-        <div class="tab-buttons" style="margin-bottom:2rem;">
-          <button class="tab-btn active" data-tab="processing">Processing (${userAppsCount})</button>
-          <button class="tab-btn" data-tab="hired">Hired (${hiredCount})</button>
-          <button class="tab-btn" data-tab="rejected">Rejected (${rejectedCount})</button>
+        <div style="display:flex; align-items:center; gap:1rem; margin-bottom:2rem; flex-wrap:wrap;">
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="processing">Processing (${userAppsCount})</button>
+            <button class="tab-btn" data-tab="hired">Hired (${hiredCount})</button>
+            <button class="tab-btn" data-tab="rejected">Rejected (${rejectedCount})</button>
+          </div>
+          <button class="big" onclick="openAnnouncementModal()" style="padding:0.6rem 1.2rem; font-size:0.95rem; background:#5856d6; margin-left:auto;">📢 Broadcast Announcement</button>
         </div>
         <div id="candidates-content"></div>
       `;

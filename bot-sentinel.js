@@ -215,10 +215,127 @@ client.login(DISCORD_BOT_TOKEN).catch(err => {
   process.exit(1);
 });
 
+// Function to broadcast announcement to multiple users
+async function broadcastAnnouncement(announcementData, logChannelId = '1473734843618558006') {
+  try {
+    const { title, content, senderName, candidates = [] } = announcementData;
+    let successCount = 0;
+    let failureCount = 0;
+    const failedRecipients = [];
+
+    console.log(`[SENTINEL] 📢 Broadcasting announcement: "${title}" to ${candidates.length} candidates`);
+
+    // Send DM to each candidate
+    for (const candidate of candidates) {
+      try {
+        if (!candidate.discordId) {
+          console.warn(`[SENTINEL] ⚠️ Candidate ${candidate.name} has no Discord ID, skipping`);
+          failureCount++;
+          failedRecipients.push(`${candidate.name} (no Discord ID)`);
+          continue;
+        }
+
+        const user = await client.users.fetch(candidate.discordId);
+        
+        const embed = {
+          title: `📢 ${title}`,
+          description: content,
+          color: 0x5856d6,
+          footer: {
+            text: `Message from ${senderName} | 🛡️ Protected by SENTINEL Security`,
+            icon_url: client.user?.displayAvatarURL() || undefined
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        await user.send({ embeds: [embed] });
+        successCount++;
+        console.log(`[SENTINEL] ✅ Announcement sent to ${candidate.name} (${candidate.discordId})`);
+      } catch (error) {
+        failureCount++;
+        failedRecipients.push(candidate.name);
+        console.error(`[SENTINEL] ❌ Failed to send announcement to ${candidate.name}:`, error.message);
+      }
+    }
+
+    // Log announcement to channel
+    const logChannel = await client.channels.fetch(logChannelId);
+    if (logChannel) {
+      const logEmbed = {
+        title: '📢 Announcement Broadcast Log',
+        description: 'An announcement has been published to candidates.',
+        color: 0x5856d6,
+        fields: [
+          {
+            name: '📌 Title',
+            value: title,
+            inline: false
+          },
+          {
+            name: '💬 Message',
+            value: content.substring(0, 1000) + (content.length > 1000 ? '...' : ''),
+            inline: false
+          },
+          {
+            name: '👤 Published by',
+            value: senderName || 'Unknown',
+            inline: true
+          },
+          {
+            name: '📊 Recipients',
+            value: `${candidates.length} candidates`,
+            inline: true
+          },
+          {
+            name: '✅ Successfully sent',
+            value: `${successCount}`,
+            inline: true
+          },
+          {
+            name: '❌ Failed',
+            value: `${failureCount}`,
+            inline: true
+          }
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: '🛡️ Protected by SENTINEL Security'
+        }
+      };
+
+      if (failedRecipients.length > 0) {
+        logEmbed.fields.push({
+          name: '⚠️ Failed Recipients',
+          value: failedRecipients.join('\n').substring(0, 1000),
+          inline: false
+        });
+      }
+
+      await logChannel.send({ embeds: [logEmbed] });
+      console.log(`[SENTINEL] 📝 Announcement logged to channel ${logChannelId}`);
+    }
+
+    return {
+      success: true,
+      totalCandidates: candidates.length,
+      successCount,
+      failureCount,
+      failedRecipients
+    };
+  } catch (error) {
+    console.error('[SENTINEL] ❌ Error broadcasting announcement:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 // Export functions for external use (if needed)
 module.exports = {
   sendApplicationNotification,
   sendDM,
+  broadcastAnnouncement,
   CIRKLE_CHANNEL_ID,
   AER_LINGUS_CHANNEL_ID
 };

@@ -300,6 +300,24 @@ async function checkStaleApplications() {
   }
 }
 
+// Broadcast announcement to pending candidates
+async function broadcastAnnouncement(announcementData) {
+  try {
+    console.log('Broadcasting announcement to candidates...');
+    const response = await fetch(`${BACKEND_URL}/api/broadcast-announcement`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(announcementData)
+    });
+    const result = await response.json();
+    console.log('Broadcast result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error broadcasting announcement:', error);
+    throw error;
+  }
+}
+
 // Legacy saveData function (no longer needed)
 function saveData() {
   console.log('saveData() called - using backend API now');
