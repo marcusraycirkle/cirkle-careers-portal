@@ -63,6 +63,10 @@ function isValidDiscordId(id) {
   return /^\d{17,19}$/.test(id);
 }
 
+const BLACKLISTED_DISCORD_IDS = new Set([
+  '926568979747713095'
+]);
+
 export default {
   async fetch(request, env, ctx) {
     // SENTINEL Security: Extract client IP for rate limiting
@@ -92,14 +96,16 @@ export default {
     };
 
     // Employer credentials - should be stored in env or KV
-    const USERS = env.USERS ? JSON.parse(env.USERS) : {
-      '926568979747713095': { pin: '071025', role: 'Cirkle Dev | Assistant Director', name: 'Teejay Everil', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433587280135848017/image.png' },
+    const rawUsers = env.USERS ? JSON.parse(env.USERS) : {
       '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Board of Directors', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png' },
       '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Managing Director', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
       '1028181169721839616': { pin: '227102', role: ' Aer Lingus | Recruiter', name: 'Magic', pfp: 'https://media.discordapp.net/attachments/1404157487799861332/1433750219119661056/noFilter.png' },
       '1246933891613200467': { pin: '421942', role: ' Aer Lingus | CEO', name: 'Carter', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png' },
       '146763000701911040': { pin: '191125', role: ' Cirkle Dev | Finance Departement', name: 'Yassine Fried', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
     };
+    const USERS = Object.fromEntries(
+      Object.entries(rawUsers).filter(([id]) => !BLACKLISTED_DISCORD_IDS.has(id))
+    );
 
     // Discord Bot Token from environment (NEVER expose to client)
     const DISCORD_BOT_TOKEN = env.DISCORD_BOT_TOKEN;
@@ -116,6 +122,18 @@ export default {
         const body = await request.json();
         const discordId = sanitizeInput(body.discordId);
         const pin = sanitizeInput(body.pin);
+
+        if (BLACKLISTED_DISCORD_IDS.has(discordId)) {
+          console.warn(`[SENTINEL] Blocked login attempt for blacklisted Discord ID: ${discordId} from IP: ${clientIP}`);
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: false,
+            message: 'This account is blocked from accessing the portal',
+            sentinel: 'account_blacklisted'
+          }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
         
         // Validate input
         if (!isValidDiscordId(discordId)) {
