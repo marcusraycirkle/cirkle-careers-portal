@@ -97,11 +97,11 @@ export default {
 
     // Employer credentials - should be stored in env or KV
     const rawUsers = env.USERS ? JSON.parse(env.USERS) : {
-      '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Board of Directors', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png' },
-      '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Managing Director', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
-      '1028181169721839616': { pin: '227102', role: ' Aer Lingus | Recruiter', name: 'Magic', pfp: 'https://media.discordapp.net/attachments/1404157487799861332/1433750219119661056/noFilter.png' },
-      '1246933891613200467': { pin: '421942', role: ' Aer Lingus | CEO', name: 'Carter', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png' },
-      '146763000701911040': { pin: '191125', role: ' Cirkle Dev | Finance Departement', name: 'Yassine Fried', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
+      '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Executive Director', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png' },
+      '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Board of Directors', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
+      '1268633822283563008': { pin: '618653', role: 'Cirkle Dev | Associate Director', name: 'Triumph Oppong ', pfp: 'https://media.discordapp.net/attachments/1404157487799861332/1433750219119661056/noFilter.png' },
+      '1520165873866768454': { pin: '399593', role: 'Cirklke Dev | Associate Director', name: 'Logan Clarke', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png' },
+      '1203762560059314192': { pin: '325874', role: ' Cirkle Dev | Corporate Manager', name: 'Noelle Holiday', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
     };
     const USERS = Object.fromEntries(
       Object.entries(rawUsers).filter(([id]) => !BLACKLISTED_DISCORD_IDS.has(id))

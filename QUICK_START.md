@@ -11,6 +11,7 @@ cat > .env << 'EOF'
 DISCORD_BOT_TOKEN=YOUR_ACTUAL_BOT_TOKEN_HERE
 CIRKLE_CHANNEL_ID=1473377571482894478
 AER_LINGUS_CHANNEL_ID=1395759805305716848
+GREENFIELD_CHANNEL_ID=1510753004264095764
 SENTINEL_MODE=enabled
 EOF
 ```
@@ -63,6 +64,7 @@ pm2 startup
    - `DISCORD_BOT_TOKEN`
    - `CIRKLE_CHANNEL_ID=1473377571482894478`
    - `AER_LINGUS_CHANNEL_ID=1395759805305716848`
+  - `GREENFIELD_CHANNEL_ID=1510753004264095764`
    - `SENTINEL_MODE=enabled`
 5. Deploy!
 
@@ -110,6 +112,7 @@ Expected response:
 - ✅ Notifications go to:
   - **Cirkle Development & Cirkle Group Careers:** Channel `1473377571482894478`
   - **Aer Lingus:** Channel `1395759805305716848`
+  - **Greenfield Secondary School:** Channel `1510753004264095764`
 - ✅ Role pings preserved
 - ✅ Rich embeds with all application details
 

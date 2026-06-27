@@ -2,7 +2,7 @@
 
 // Data Structures - ALL SENSITIVE DATA NOW IN BACKEND
 // No more hardcoded credentials visible in browser!
-const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers'];
+const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers', 'Greenfield Secondary School'];
 
 // Company logos - using permanent Discord CDN links (no expiry parameters)
 const COMPANY_LOGOS = {
@@ -798,14 +798,16 @@ async function submitApplication(jobId) {
         'Cirkle Development': '1473377571482894478',
         'Cirkle Group Careers': '1473377571482894478',
         'Aer Lingus': '1395759805305716848',
-        'DevDen': '1473377571482894478' // Using Cirkle channel for now
+        'DevDen': '1473377571482894478', // Using Cirkle channel for now
+        'Greenfield Secondary School': '1510753004264095764'
       };
       
       const COMPANY_ROLE_PINGS = {
         'Cirkle Development': '<@&1315065603178102794>',
         'Cirkle Group Careers': '<@&1315065603178102794>',
         'Aer Lingus': '<@&1396248348595323163>',
-        'DevDen': '<@&1144662197335769089>'
+        'DevDen': '<@&1144662197335769089>',
+        'Greenfield Secondary School': '<@&1315065603178102794>'
       };
       
       const CHANNEL_ID = COMPANY_CHANNELS[companyKey] || COMPANY_CHANNELS['Cirkle Development'];

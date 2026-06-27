@@ -18,6 +18,7 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActivityType } = require('disco
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CIRKLE_CHANNEL_ID = process.env.CIRKLE_CHANNEL_ID || '1473377571482894478';
 const AER_LINGUS_CHANNEL_ID = process.env.AER_LINGUS_CHANNEL_ID || '1395759805305716848';
+const GREENFIELD_CHANNEL_ID = process.env.GREENFIELD_CHANNEL_ID || '1510753004264095764';
 
 // Debug logging
 console.log('[SENTINEL] 🔍 Environment check:');
@@ -44,7 +45,7 @@ const statuses = [
   { name: '🛡️ Protected by SENTINEL', type: ActivityType.Watching },
   { name: '🧐 Reading Applications', type: ActivityType.Watching },
   { name: '🌐 careers.cirkledevelopment.co.uk', type: ActivityType.Watching },
-  { name: '🏠 Currently Serving 4 Companies', type: ActivityType.Watching }
+  { name: '🏠 Currently Serving 5 Companies', type: ActivityType.Watching }
 ];
 
 let currentStatusIndex = 0;
@@ -57,6 +58,7 @@ client.once('ready', () => {
   console.log(`[SENTINEL] Channel IDs configured:`);
   console.log(`[SENTINEL]   - Cirkle Development: ${CIRKLE_CHANNEL_ID}`);
   console.log(`[SENTINEL]   - Aer Lingus: ${AER_LINGUS_CHANNEL_ID}`);
+  console.log(`[SENTINEL]   - Greenfield Secondary School: ${GREENFIELD_CHANNEL_ID}`);
   
   // Set initial status
   updateStatus();
@@ -123,7 +125,8 @@ async function sendApplicationNotification(application, channelId) {
       'Cirkle Development': 0x5856d6,
       'Aer Lingus': 0x00ff00,
       'DevDen': 0xff6b6b,
-      'Cirkle Group Careers': 0x007aff
+      'Cirkle Group Careers': 0x007aff,
+      'Greenfield Secondary School': 0x2e8b57
     };
 
     const embed = new EmbedBuilder()
@@ -337,5 +340,6 @@ module.exports = {
   sendDM,
   broadcastAnnouncement,
   CIRKLE_CHANNEL_ID,
-  AER_LINGUS_CHANNEL_ID
+  AER_LINGUS_CHANNEL_ID,
+  GREENFIELD_CHANNEL_ID
 };
