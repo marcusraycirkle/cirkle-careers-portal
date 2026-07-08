@@ -9,7 +9,7 @@ const COMPANY_MEDIA = {
   'Aer Lingus': { logo: 'aerlinguslogo.jpg', banner: 'aerlingusbanner.png', channelId: '1395759805305716848', rolePing: '<@&1396248348595323163>', accent: '#00ff00' },
   'DevDen': { logo: 'devdenlogo.png', banner: 'Shannon%20Airport.png', channelId: '1473377571482894478', rolePing: '<@&1144662197335769089>', accent: '#ff6b6b' },
   'Cirkle Group Careers': { logo: 'cirklegoruplogo.jpg', banner: 'cirklepage.png', channelId: '1473377571482894478', rolePing: '<@&1315065603178102794>', accent: '#007aff' },
-  'Cambridge Secondary School': { logo: 'NEW_CSS_LOGO_WITH_BACKROUNF.webp', banner: 'CB_NEW_GROUP.webp', channelId: '1524382280695676938', rolePing: '<@&1315065603178102794>', accent: '#2e8b57' },
+  'Cambridge Secondary School': { logo: 'NEW_CSS_LOGO_WTH_BACKROUNF.webp', banner: 'CB_NEW_GROUP.webp', channelId: '1524382280695676938', rolePing: '<@&1315065603178102794>', accent: '#2e8b57' },
   'RoIsland': { logo: 'IMG_4003.webp', banner: null, channelId: '1515533533114925126', rolePing: '<@&1315065603178102794>', accent: '#d97706' }
 };
 
