@@ -301,27 +301,27 @@ main {
 }
 
 main.page-transition-fade {
-  animation: fadeIn 0.6s ease-out;
+  animation: fadeIn 0.35s ease-out;
 }
 
 main.page-transition-slide-left {
-  animation: slideInFromLeft 0.5s ease-out;
+  animation: slideInFromLeft 0.32s ease-out;
 }
 
 main.page-transition-slide-right {
-  animation: slideInFromRight 0.5s ease-out;
+  animation: slideInFromRight 0.32s ease-out;
 }
 
 main.page-transition-slide-up {
-  animation: slideUp 0.5s ease-out;
+  animation: slideUp 0.32s ease-out;
 }
 
 main.page-transition-scale {
-  animation: scaleIn 0.5s ease-out;
+  animation: scaleIn 0.32s ease-out;
 }
 
 main.page-transition-rotate {
-  animation: fadeInRotate 0.6s ease-out;
+  animation: fadeInRotate 0.35s ease-out;
   transition: all 0.3s ease;
 }
 
@@ -375,12 +375,12 @@ button.big {
   font-weight: 600;
   border-radius: 10px;
   margin: 1.5rem 0;
-  transition: background 0.3s, transform 0.2s;
+  transition: background 0.25s, transform 0.18s;
 }
 
 button.big:hover {
   background: #0056b3;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .row {
@@ -392,11 +392,11 @@ button.big:hover {
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .row:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0,0,0,0.1);
 }
 
@@ -405,7 +405,7 @@ button.big:hover {
   height: 56px;
   border-radius: 50%;
   margin-right: 1.25rem;
-  transition: transform 0.3s;
+  transition: transform 0.2s ease;
 }
 
 .row:hover img {
@@ -430,11 +430,11 @@ button.big:hover {
   margin: 0.75rem 0;
   border-radius: 16px;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .faq-row:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
@@ -453,8 +453,45 @@ button.big:hover {
   padding: 0 1.25rem 1.25rem;
   background: transparent;
   color: #000;
-  animation: slideDown 0.3s ease-out;
+  animation: slideDown 0.2s ease-out;
   overflow: hidden;
+}
+
+#startup-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.startup-loading-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 180px;
+}
+
+.startup-loading-logo {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  animation: startupLogoSpin 2s ease-in-out forwards;
+  filter: drop-shadow(0 0 24px rgba(255,255,255,0.12));
+}
+
+@keyframes startupLogoSpin {
+  from { transform: rotate(0deg) scale(0.95); opacity: 0; }
+  20% { opacity: 1; }
+  to { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+.company-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12) !important;
 }
 
 #employer-main {

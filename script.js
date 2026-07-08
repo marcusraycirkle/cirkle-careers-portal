@@ -2,15 +2,76 @@
 
 // Data Structures - ALL SENSITIVE DATA NOW IN BACKEND
 // No more hardcoded credentials visible in browser!
-const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers', 'Greenfield Secondary School'];
+const COMPANIES = ['Cirkle Development', 'Aer Lingus', 'DevDen', 'Cirkle Group Careers', 'Cambridge Secondary School', 'RoIsland'];
+
+const COMPANY_MEDIA = {
+  'Cirkle Development': { logo: 'maincirklelogo.png', banner: 'ssmartpal2banner.png', channelId: '1473377571482894478', rolePing: '<@&1315065603178102794>', accent: '#5856d6' },
+  'Aer Lingus': { logo: 'aerlinguslogo.jpg', banner: 'aerlingusbanner.png', channelId: '1395759805305716848', rolePing: '<@&1396248348595323163>', accent: '#00ff00' },
+  'DevDen': { logo: 'devdenlogo.png', banner: 'Shannon%20Airport.png', channelId: '1473377571482894478', rolePing: '<@&1144662197335769089>', accent: '#ff6b6b' },
+  'Cirkle Group Careers': { logo: 'cirklegoruplogo.jpg', banner: 'cirklepage.png', channelId: '1473377571482894478', rolePing: '<@&1315065603178102794>', accent: '#007aff' },
+  'Cambridge Secondary School': { logo: 'NEW_CSS_LOGO_WITH_BACKROUNF.webp', banner: 'CB_NEW_GROUP.webp', channelId: '1524382280695676938', rolePing: '<@&1315065603178102794>', accent: '#2e8b57' },
+  'RoIsland': { logo: 'IMG_4003.webp', banner: null, channelId: '1515533533114925126', rolePing: '<@&1315065603178102794>', accent: '#d97706' }
+};
 
 // Company logos - using permanent Discord CDN links (no expiry parameters)
 const COMPANY_LOGOS = {
-  'Cirkle Development': 'https://cdn.discordapp.com/attachments/1419317839269073016/1433841576924287056/Untitled_design.png',
-  'Aer Lingus': 'https://cdn.discordapp.com/attachments/1315278404009988107/1425166770922328174/Eco_Clean.jpg',
-  'DevDen': 'https://cdn.discordapp.com/attachments/1315278404009988107/1426979098328174634/image.png',
-  'Cirkle Group Careers': 'https://cdn.discordapp.com/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
+  'Cirkle Development': COMPANY_MEDIA['Cirkle Development'].logo,
+  'Aer Lingus': COMPANY_MEDIA['Aer Lingus'].logo,
+  'DevDen': COMPANY_MEDIA['DevDen'].logo,
+  'Cirkle Group Careers': COMPANY_MEDIA['Cirkle Group Careers'].logo,
+  'Cambridge Secondary School': COMPANY_MEDIA['Cambridge Secondary School'].logo,
+  'RoIsland': COMPANY_MEDIA['RoIsland'].logo
 };
+
+const COMPANY_BANNERS = {
+  'Cirkle Development': COMPANY_MEDIA['Cirkle Development'].banner,
+  'Aer Lingus': COMPANY_MEDIA['Aer Lingus'].banner,
+  'DevDen': COMPANY_MEDIA['DevDen'].banner,
+  'Cirkle Group Careers': COMPANY_MEDIA['Cirkle Group Careers'].banner,
+  'Cambridge Secondary School': COMPANY_MEDIA['Cambridge Secondary School'].banner,
+  'RoIsland': COMPANY_MEDIA['RoIsland'].banner
+};
+
+const COMPANY_CHANNELS = {
+  'Cirkle Development': COMPANY_MEDIA['Cirkle Development'].channelId,
+  'Cirkle Group Careers': COMPANY_MEDIA['Cirkle Group Careers'].channelId,
+  'Aer Lingus': COMPANY_MEDIA['Aer Lingus'].channelId,
+  'DevDen': COMPANY_MEDIA['DevDen'].channelId,
+  'Cambridge Secondary School': COMPANY_MEDIA['Cambridge Secondary School'].channelId,
+  'RoIsland': COMPANY_MEDIA['RoIsland'].channelId
+};
+
+const COMPANY_ROLE_PINGS = {
+  'Cirkle Development': COMPANY_MEDIA['Cirkle Development'].rolePing,
+  'Cirkle Group Careers': COMPANY_MEDIA['Cirkle Group Careers'].rolePing,
+  'Aer Lingus': COMPANY_MEDIA['Aer Lingus'].rolePing,
+  'DevDen': COMPANY_MEDIA['DevDen'].rolePing,
+  'Cambridge Secondary School': COMPANY_MEDIA['Cambridge Secondary School'].rolePing,
+  'RoIsland': COMPANY_MEDIA['RoIsland'].rolePing
+};
+
+const STARTUP_LOADING_DURATION = 2000;
+const INTERACTION_LOADING_DURATION = 800;
+
+function getCompanyBanner(companyName) {
+  return COMPANY_BANNERS[companyName] || null;
+}
+
+function getCompanyAccent(companyName) {
+  return COMPANY_MEDIA[companyName]?.accent || '#007aff';
+}
+
+function showStartupLoadingScreen() {
+  if (document.getElementById('startup-loading-screen')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'startup-loading-screen';
+  overlay.innerHTML = '<div class="startup-loading-card"><img src="tlogo.png" alt="Loading" class="startup-loading-logo"></div>';
+  document.body.appendChild(overlay);
+}
+
+function hideStartupLoadingScreen() {
+  document.getElementById('startup-loading-screen')?.remove();
+}
 
 // Fallback function to get company logo with error handling
 function getCompanyLogo(companyName) {
@@ -159,6 +220,9 @@ window.addEventListener('hashchange', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  showStartupLoadingScreen();
+  setTimeout(() => hideStartupLoadingScreen(), STARTUP_LOADING_DURATION);
+
   // Update header immediately on load to prevent flash
   updateHeader();
   
@@ -218,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   updateHeader();
-  renderPage();
+  setTimeout(() => renderPage(), STARTUP_LOADING_DURATION);
 });
 
 async function login() {
@@ -320,7 +384,7 @@ function renderPage() {
     // Fade out
     main.style.opacity = '0';
     main.style.transform = 'translateY(20px)';
-    main.style.transition = 'opacity 0.2s, transform 0.2s';
+    main.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
     
     setTimeout(() => {
       main.innerHTML = '';
@@ -331,7 +395,8 @@ function renderPage() {
         renderEmployerPage(subpage);
       } else if (hash.startsWith('apply/')) {
         const jobId = parseInt(hash.split('/')[1]);
-        renderApplicationPage(jobId);
+        showLoading();
+        setTimeout(() => renderApplicationPage(jobId), INTERACTION_LOADING_DURATION);
       } else {
         switch (hash) {
           case 'home': renderHome(); break;
@@ -358,11 +423,11 @@ function renderPage() {
       main.classList.add(randomAnimation);
       
       setTimeout(() => {
-        main.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+        main.style.transition = 'opacity 0.35s ease-out, transform 0.35s ease-out';
         main.style.opacity = '1';
         main.style.transform = 'translateY(0)';
       }, 50);
-    }, 200);
+    }, 120);
   }
 }
 
@@ -430,7 +495,7 @@ function renderVacancies() {
       <h2 style="font-size:2.5rem; font-weight:800; margin-bottom:1rem; text-align:center;">Available Vacancies</h2>
       <p style="text-align:center; font-size:1.1rem; color:#6e6e73; margin-bottom:2rem;">Explore opportunities across our family of companies</p>
       <img src="https://cdn.discordapp.com/attachments/1404157487799861332/1432846309362237480/image.png" alt="Vacancies Banner" style="border-radius:20px; margin-bottom:2.5rem; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.12);" onerror="this.style.display='none';">
-      <div style="display:grid; gap:1.5rem;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem;">
     `;
     
     COMPANIES.forEach(company => {
@@ -442,16 +507,24 @@ function renderVacancies() {
       }).length;
       
       const logo = getCompanyLogo(company);
+      const banner = getCompanyBanner(company);
+      const accent = getCompanyAccent(company);
       
       main.innerHTML += `
-        <div class="row" onclick="navigate('company/${encodeURIComponent(company)}')" style="display:flex; align-items:center; padding:1.5rem; background:#fff; border-radius:16px; cursor:pointer; transition:all 0.3s; box-shadow:0 4px 12px rgba(0,0,0,0.08); gap:1.5rem;">
-          <img src="${logo}" alt="${company}" style="width:80px; height:80px; border-radius:12px; object-fit:cover; box-shadow:0 2px 8px rgba(0,0,0,0.1);" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(company)}&background=007aff&color=fff&size=80&bold=true';">
-          <div style="flex:1;">
-            <h3 style="font-size:1.4rem; font-weight:700; margin-bottom:0.25rem; color:#1d1d1f;">${company}</h3>
-            <p style="color:#6e6e73; font-size:0.95rem;">Explore positions in this company</p>
-          </div>
-          <div style="background:${count > 0 ? '#34c759' : '#8e8e93'}; color:#fff; padding:0.5rem 1rem; border-radius:20px; font-weight:700; font-size:1.1rem; min-width:60px; text-align:center;">
-            ${count}
+        <div class="company-card" onclick="navigate('company/${encodeURIComponent(company)}')" style="cursor:pointer; overflow:hidden; background:#fff; border-radius:20px; box-shadow:0 8px 24px rgba(0,0,0,0.08); transition:transform 0.28s ease, box-shadow 0.28s ease;">
+          <div style="position:relative; min-height:180px; background:${banner ? '#111' : `linear-gradient(135deg, ${accent} 0%, #111827 100%)`};">
+            ${banner ? `<img src="${banner}" alt="${company} banner" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">` : ''}
+            <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.72) 100%);"></div>
+            <div style="position:absolute; left:1rem; right:1rem; bottom:1rem; display:flex; align-items:center; gap:0.9rem; z-index:1;">
+              <img src="${logo}" alt="${company}" style="width:58px; height:58px; border-radius:14px; object-fit:cover; background:#fff; box-shadow:0 4px 14px rgba(0,0,0,0.22);" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(company)}&background=007aff&color=fff&size=80&bold=true';">
+              <div style="min-width:0; flex:1; color:#fff;">
+                <h3 style="font-size:1.2rem; font-weight:800; margin:0 0 0.2rem; line-height:1.1;">${company}</h3>
+                <p style="font-size:0.9rem; opacity:0.9; margin:0;">Tap to view current openings</p>
+              </div>
+              <div style="background:${count > 0 ? '#34c759' : 'rgba(255,255,255,0.16)'}; color:#fff; padding:0.45rem 0.8rem; border-radius:999px; font-weight:800; font-size:1rem; min-width:58px; text-align:center; backdrop-filter:blur(10px);">
+                ${count}
+              </div>
+            </div>
           </div>
         </div>
       `;
@@ -465,6 +538,8 @@ function renderCompanyJobs(company) {
   const main = document.getElementById('main-content');
   if (main) {
     const logo = getCompanyLogo(company);
+    const banner = getCompanyBanner(company);
+    const accent = getCompanyAccent(company);
     
     // Normalize company name for comparison
     const normalizedCompany = company.trim();
@@ -480,9 +555,17 @@ function renderCompanyJobs(company) {
     
     main.innerHTML = `
       <div style="text-align:center; margin-bottom:2rem;">
-        <img src="${logo}" alt="${company}" style="width:120px; height:120px; border-radius:20px; margin-bottom:1rem; box-shadow:0 4px 16px rgba(0,0,0,0.12); object-fit:cover;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(company)}&background=007aff&color=fff&size=120&bold=true';">
-        <h1 style="font-size:2.8rem; font-weight:800; margin-bottom:0.5rem;">${company}</h1>
-        <p style="font-size:1.1rem; color:#6e6e73;">${list.length} active position${list.length !== 1 ? 's' : ''} available</p>
+        <div style="position:relative; overflow:hidden; min-height:220px; border-radius:24px; background:${banner ? '#111' : `linear-gradient(135deg, ${accent} 0%, #111827 100%)`}; box-shadow:0 10px 30px rgba(0,0,0,0.12); margin-bottom:1rem;">
+          ${banner ? `<img src="${banner}" alt="${company} banner" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">` : ''}
+          <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.76) 100%);"></div>
+          <div style="position:absolute; left:1.25rem; right:1.25rem; bottom:1.25rem; display:flex; align-items:center; gap:1rem; z-index:1; text-align:left;">
+            <img src="${logo}" alt="${company}" style="width:84px; height:84px; border-radius:18px; object-fit:cover; background:#fff; box-shadow:0 6px 20px rgba(0,0,0,0.24);" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(company)}&background=007aff&color=fff&size=120&bold=true';">
+            <div style="color:#fff; min-width:0;">
+              <h1 style="font-size:2rem; font-weight:900; margin:0 0 0.25rem; line-height:1.05;">${company}</h1>
+              <p style="font-size:1rem; opacity:0.9; margin:0;">${list.length} active position${list.length !== 1 ? 's' : ''} available</p>
+            </div>
+          </div>
+        </div>
       </div>
     `;
     
@@ -521,13 +604,16 @@ function showJobPopup(job) {
   if (job) {
     job.clicks++;
     saveData();
-    showPopup(`
-      <h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">${job.title}</h2>
-      <p style="margin-bottom:1rem; line-height:1.6; white-space:pre-wrap;">${job.description}</p>
-      ${job.requirements ? `<div style="margin-bottom:1rem;"><strong>Requirements:</strong><p style="line-height:1.6; white-space:pre-wrap; margin-top:0.5rem;">${job.requirements}</p></div>` : ''}
-      <p style="font-weight:600; margin-bottom:1.5rem;">Payment: ${job.payment}</p>
-      <button class="big" onclick="navigate('apply/${job.id}'); hidePopup();" style="width:100%;">Apply Now</button>
-    `, false);
+    showLoading();
+    setTimeout(() => {
+      showPopup(`
+        <h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">${job.title}</h2>
+        <p style="margin-bottom:1rem; line-height:1.6; white-space:pre-wrap;">${job.description}</p>
+        ${job.requirements ? `<div style="margin-bottom:1rem;"><strong>Requirements:</strong><p style="line-height:1.6; white-space:pre-wrap; margin-top:0.5rem;">${job.requirements}</p></div>` : ''}
+        <p style="font-weight:600; margin-bottom:1.5rem;">Payment: ${job.payment}</p>
+        <button class="big" onclick="navigate('apply/${job.id}'); hidePopup();" style="width:100%;">Apply Now</button>
+      `, false);
+    }, INTERACTION_LOADING_DURATION);
   }
 }
 
@@ -794,22 +880,6 @@ async function submitApplication(jobId) {
       }
       
       // 🛡️ SENTINEL Security: Send to Discord via bot channel posting (replaces webhooks)
-      const COMPANY_CHANNELS = {
-        'Cirkle Development': '1473377571482894478',
-        'Cirkle Group Careers': '1473377571482894478',
-        'Aer Lingus': '1395759805305716848',
-        'DevDen': '1473377571482894478', // Using Cirkle channel for now
-        'Greenfield Secondary School': '1510753004264095764'
-      };
-      
-      const COMPANY_ROLE_PINGS = {
-        'Cirkle Development': '<@&1315065603178102794>',
-        'Cirkle Group Careers': '<@&1315065603178102794>',
-        'Aer Lingus': '<@&1396248348595323163>',
-        'DevDen': '<@&1144662197335769089>',
-        'Greenfield Secondary School': '<@&1315065603178102794>'
-      };
-      
       const CHANNEL_ID = COMPANY_CHANNELS[companyKey] || COMPANY_CHANNELS['Cirkle Development'];
       const ROLE_PING = COMPANY_ROLE_PINGS[companyKey] || COMPANY_ROLE_PINGS['Cirkle Development'];
       
@@ -916,7 +986,7 @@ async function submitApplication(jobId) {
       playSuccessSound();
       showSuccessScreen('Successfully Applied!', app.pin, true);
     }
-  }, 2000);
+  }, INTERACTION_LOADING_DURATION);
 }
 
 function renderCandidateStatus() {
