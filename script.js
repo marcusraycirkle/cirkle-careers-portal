@@ -89,7 +89,7 @@ function getCompanyLogo(companyName) {
 let currentUser = null;
 
 // Chat live functionality
-let activeChatId = null;
+var activeChatId = null;
 let chatPollInterval = null;
 let typingTimeout = null;
 

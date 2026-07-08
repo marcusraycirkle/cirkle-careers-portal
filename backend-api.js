@@ -114,7 +114,7 @@ async function loadChats() {
     chats = data || {};
     const newChatCount = Object.keys(chats).length;
     console.log(`[CHAT DEBUG] Chats loaded: ${newChatCount} chats (was ${oldChatCount})`);
-    if (activeChatId && chats[activeChatId]) {
+    if (typeof activeChatId !== 'undefined' && activeChatId && chats[activeChatId]) {
       console.log(`[CHAT DEBUG] Active chat ${activeChatId} has ${chats[activeChatId].length} messages`);
     }
   } catch (error) {
