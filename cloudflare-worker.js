@@ -97,9 +97,12 @@ export default {
 
     // Employer credentials - should be stored in env or KV
     const rawUsers = env.USERS ? JSON.parse(env.USERS) : {
-      '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Board of Directors', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png' },
-      '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Managing Director', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
-      '1002932344799371354': { pin: '191125', role: 'Cirkle Dev | Associate Director', name: 'Appler Smith', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' }
+      '1088907566844739624': { pin: '061025', role: 'Cirkle Dev | Executive Director', name: 'Marcus Ray', pfp: 'https://media.discordapp.net/attachments/1360983939338080337/1433579053238976544/image.png' },
+      '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Board of Directors', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
+      '1268633822283563008': { pin: '618653', role: 'Cirkle Dev | Associate Director', name: 'Triumph Oppong ', pfp: 'https://media.discordapp.net/attachments/1404157487799861332/1433750219119661056/noFilter.png' },
+      '1520165873866768454': { pin: '399593', role: 'Cirklke Dev | Associate Director', name: 'Logan Clarke', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png' },
+      '1203762560059314192': { pin: '325874', role: ' Cirkle Dev | Corporate Manager', name: 'Noelle Holiday', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' },
+      '971822919590244402': { pin: '971822', role: ' Cambridge Secondary School | Executive Headteacher', name: 'Belle Mackenzie', pfp: 'https://images-ext-1.discordapp.net/external/kmsPPcxDamsd9DpSSWbpviHIosXfGi4dA9ffBxa7-b4/%3Fformat%3Dwebp/https/images-ext-1.discordapp.net/external/qCqyNyx3TrMgtBf_vueYK9oYRHVm6kx8p6klQBW3x3M/https/tr.rbxcdn.com/30DAY-AvatarBust-78BB6C086CE3FBD1AF524AC2C7A82C12-Png/420/420/AvatarBust/Png/noFilter?format=webp' }
     };
     const USERS = Object.fromEntries(
       Object.entries(rawUsers).filter(([id]) => !BLACKLISTED_DISCORD_IDS.has(id))
