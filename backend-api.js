@@ -153,9 +153,16 @@ async function saveJob(job) {
 // Delete job from backend
 async function deleteJob(jobId) {
   try {
-    const job = jobs.find(j => j.id === jobId);
-    if (job && job.firebaseKey) {
-      await fetch(`${BACKEND_URL}/api/jobs/${job.firebaseKey}`, {
+    let job = jobs.find(j => j.id === jobId || j.firebaseKey === jobId || j.firebaseKey === String(jobId));
+
+    if (!job) {
+      await loadJobs();
+      job = jobs.find(j => j.id === jobId || j.firebaseKey === jobId || j.firebaseKey === String(jobId));
+    }
+
+    const deleteKey = job?.firebaseKey || job?.id || jobId;
+    if (deleteKey) {
+      await fetch(`${BACKEND_URL}/api/jobs/${deleteKey}`, {
         method: 'DELETE'
       });
       await loadJobs(); // Refresh jobs

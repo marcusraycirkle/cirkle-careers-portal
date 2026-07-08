@@ -195,6 +195,37 @@ function showSuccessScreen(message, pin = null, requireButton = false) {
   }
 }
 
+function setVacancyMetadata(job) {
+  if (!job) return;
+
+  const title = `${job.title} at ${job.company} | Cirkle Careers`;
+  const description = (job.description || '').replace(/\s+/g, ' ').trim().slice(0, 180) || `Apply for ${job.title} at ${job.company}.`;
+  const companyLogo = getCompanyLogo(job.company || 'Cirkle Development');
+
+  document.title = title;
+
+  const setMeta = (selector, value, attr = 'content') => {
+    let meta = document.querySelector(selector);
+    if (!meta) {
+      meta = document.createElement('meta');
+      const isProperty = selector.includes('property=');
+      const key = isProperty ? 'property' : 'name';
+      const match = selector.match(/\[(?:property|name)="([^"]+)"\]/);
+      if (match) meta.setAttribute(key, match[1]);
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute(attr, value);
+  };
+
+  setMeta('meta[property="og:title"]', title);
+  setMeta('meta[property="og:description"]', description);
+  setMeta('meta[property="og:image"]', companyLogo);
+  setMeta('meta[name="twitter:title"]', title);
+  setMeta('meta[name="twitter:description"]', description);
+  setMeta('meta[name="twitter:image"]', companyLogo);
+  setMeta('meta[name="description"]', description);
+}
+
 // Routing
 function navigate(hash) {
   window.location.hash = hash;
@@ -621,9 +652,13 @@ function renderApplicationPage(jobId) {
   const job = jobs.find(j => j.id === jobId);
   const main = document.getElementById('main-content');
   if (!job || !main) {
+    hidePopup();
     navigate('home');
     return;
   }
+
+  hidePopup();
+  setVacancyMetadata(job);
   
   main.style.padding = '2rem';
   let content = `
@@ -699,6 +734,7 @@ async function submitApplication(jobId) {
   const pin = generatePin();
   
   setTimeout(async () => {
+    let applicationCompleted = false;
     const app = { 
       id: uniqueId, 
       jobId, 
@@ -983,8 +1019,17 @@ async function submitApplication(jobId) {
         }
       }
       
+      applicationCompleted = true;
+      hidePopup();
       playSuccessSound();
       showSuccessScreen('Successfully Applied!', app.pin, true);
+    } catch (error) {
+      console.error('[APP DEBUG] Application submission failed unexpectedly:', error);
+      showNotification('Application failed to load. Please try again.');
+    } finally {
+      if (!applicationCompleted) {
+        hidePopup();
+      }
     }
   }, INTERACTION_LOADING_DURATION);
 }
@@ -2310,9 +2355,15 @@ async function confirmDeleteJob(id) {
     showPopup('<p style="text-align:center; font-size:1.2rem;">Deleting...</p>');
     
     // Actually delete the job from backend
-    const job = jobs.find(j => j.id === id);
-    if (job && job.firebaseKey) {
-      await fetch(`${BACKEND_URL}/api/jobs/${job.firebaseKey}`, {
+    let job = jobs.find(j => j.id === id || j.firebaseKey === id || j.firebaseKey === String(id));
+    if (!job) {
+      await loadJobs();
+      job = jobs.find(j => j.id === id || j.firebaseKey === id || j.firebaseKey === String(id));
+    }
+
+    const deleteKey = job?.firebaseKey || job?.id || id;
+    if (deleteKey) {
+      await fetch(`${BACKEND_URL}/api/jobs/${deleteKey}`, {
         method: 'DELETE'
       });
       await loadJobs(); // Refresh jobs from backend
