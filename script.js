@@ -744,181 +744,148 @@ async function submitApplication(jobId) {
       handler: '',
       appliedDate: new Date().toISOString()
     };
-    console.log(`[APP DEBUG] Generated PIN for application: ${pin}, ID: ${uniqueId}`);
-    const job = jobs.find(j => j.id === jobId);
-    if (job) {
-      console.log(`[APP DEBUG] Submitting application for job: ${job.title} (Company: ${job.company})`);
-      app.job = job.title; // Add job title to application
-      if (job.options.name) app.data.name = document.getElementById('app-name')?.value || '';
-      if (job.options.email) app.data.email = document.getElementById('app-email')?.value || '';
-      if (job.options.discord) {
-        const discordId = document.getElementById('app-discord')?.value || '';
-        app.data.discord = discordId;
-        app.data.discordPfp = `https://cdn.discordapp.com/embed/avatars/${Math.floor(Math.random() * 6)}.png`;
-      }
-      if (job.options.roblox) {
-        const robloxId = document.getElementById('app-roblox')?.value || '';
-        app.data.roblox = robloxId;
-        app.data.robloxAvatar = `https://via.placeholder.com/48?text=R`;
-      }
-      if (job.options.cv) {
-        const cvFile = document.getElementById('app-cv')?.files[0];
-        app.data.cv = cvFile ? `📎 ${cvFile.name} (${(cvFile.size / 1024).toFixed(1)} KB)` : '';
-      }
-      if (job.options.experience) app.data.experience = document.getElementById('app-experience')?.value || '';
-      
-      app.data.answers = {};
-      job.questions.forEach((q, i) => {
-        // Sanitize question title by removing Firebase invalid characters (. $ # [ ] / : ? *)
-        const sanitizedKey = q.title.replace(/[.$#\[\]\/:?*]/g, '_');
-        
-        if (q.type === 'short' || q.type === 'paragraph') {
-          const value = document.getElementById(`q-${i}`)?.value || '';
-          app.data.answers[sanitizedKey] = value;
-          console.log(`[APP DEBUG] Question ${i} (${sanitizedKey}): "${value}"`);
-        } else if (q.type === 'multiple' || q.type === 'multi') {
-          const selected = document.querySelectorAll(`input[name="q-${i}"]:checked`);
-          const value = Array.from(selected).map(input => input.value).join(', ');
-          app.data.answers[sanitizedKey] = value;
-          console.log(`[APP DEBUG] Question ${i} (${sanitizedKey}): "${value}"`);
-        }
-      });
-      
-      job.submissions++;
-      saveJob(job); // Firebase - update job
-      
-      console.log(`[APP DEBUG] Saving application with PIN: ${app.pin}`);
-      console.log(`[APP DEBUG] Application object:`, JSON.stringify(app, null, 2));
-      console.log(`[APP DEBUG] Answers object keys:`, Object.keys(app.data.answers));
-      console.log(`[APP DEBUG] Full application data being saved:`, app);
-      
-      try {
-        const saveResult = await saveApplication(app); // Firebase - save new application (MUST AWAIT!)
-        console.log(`[APP DEBUG] Application saved successfully, result:`, saveResult);
-        
-        // IMPORTANT: Check if Firebase returned an error even though the request succeeded
-        if (saveResult && saveResult.error) {
-          console.error(`[APP DEBUG] ❌ Firebase returned an error:`, saveResult.error);
-          throw new Error(`Firebase error: ${saveResult.error}`);
-        }
-        
-        console.log(`[APP DEBUG] Initializing chat for app ID: ${app.id}...`);
-        saveChat(app.id, []); // Firebase - initialize empty chat
-        
-        // Verify it was actually saved by checking applications array
-        setTimeout(async () => {
-          await loadApplications();
-          const savedApp = applications.find(a => a.pin === app.pin);
-          if (savedApp) {
-            console.log(`[APP DEBUG] ✅ Verified: Application with PIN ${app.pin} found in database`);
-          } else {
-            console.error(`[APP DEBUG] ❌ WARNING: Application with PIN ${app.pin} NOT found in database after save!`);
-            showNotification('⚠️ Application may not have saved properly. Please contact support with PIN: ' + app.pin);
-          }
-        }, 2000);
-      } catch (saveError) {
-        console.error(`[APP DEBUG] CRITICAL: Failed to save application!`, saveError);
-        // Show error to user but continue with notifications
-        showNotification('Warning: Application may not have been saved properly. Please contact support with your PIN: ' + app.pin);
+    try {
+      console.log(`[APP DEBUG] Generated PIN for application: ${pin}, ID: ${uniqueId}`);
+
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) {
+        showNotification('Application failed to load. Please try again.');
+        return;
       }
 
-      // Notify assigned employers via Discord DM (if we have employers mapping)
+      const jobOptions = job.options || {};
+      const jobQuestions = Array.isArray(job.questions) ? job.questions : [];
+      const companyKey = (job.company || '').toString().trim();
+
+      console.log(`[APP DEBUG] Submitting application for job: ${job.title} (Company: ${job.company})`);
+      app.job = job.title;
+
+      if (jobOptions.name) app.data.name = document.getElementById('app-name')?.value || '';
+      if (jobOptions.email) app.data.email = document.getElementById('app-email')?.value || '';
+      if (jobOptions.discord) {
+        app.data.discord = document.getElementById('app-discord')?.value || '';
+        app.data.discordPfp = `https://cdn.discordapp.com/embed/avatars/${Math.floor(Math.random() * 6)}.png`;
+      }
+      if (jobOptions.roblox) {
+        app.data.roblox = document.getElementById('app-roblox')?.value || '';
+        app.data.robloxAvatar = 'https://via.placeholder.com/48?text=R';
+      }
+      if (jobOptions.cv) {
+        const cvFile = document.getElementById('app-cv')?.files?.[0];
+        app.data.cv = cvFile ? `📎 ${cvFile.name} (${(cvFile.size / 1024).toFixed(1)} KB)` : '';
+      }
+      if (jobOptions.experience) app.data.experience = document.getElementById('app-experience')?.value || '';
+
+      app.data.answers = {};
+      jobQuestions.forEach((question, index) => {
+        const sanitizedKey = (question.title || `Question ${index + 1}`).replace(/[.$#\[\]\/:?*]/g, '_');
+
+        if (question.type === 'short' || question.type === 'paragraph') {
+          app.data.answers[sanitizedKey] = document.getElementById(`q-${index}`)?.value || '';
+        } else if (question.type === 'multiple' || question.type === 'multi') {
+          const selected = document.querySelectorAll(`input[name="q-${index}"]:checked`);
+          app.data.answers[sanitizedKey] = Array.from(selected).map(input => input.value).join(', ');
+        }
+      });
+
+      job.submissions = (job.submissions || 0) + 1;
+      await saveJob(job);
+
+      console.log(`[APP DEBUG] Saving application with PIN: ${app.pin}`);
+      console.log(`[APP DEBUG] Full application data being saved:`, app);
+
+      const saveResult = await saveApplication(app);
+      if (saveResult && saveResult.error) {
+        throw new Error(`Firebase error: ${saveResult.error}`);
+      }
+
+      saveChat(app.id, []);
+
+      setTimeout(async () => {
+        await loadApplications();
+        const savedApp = applications.find(a => a.pin === app.pin);
+        if (!savedApp) {
+          showNotification('⚠️ Application may not have saved properly. Please contact support with PIN: ' + app.pin);
+        }
+      }, 2000);
+
       if (job.assigned && Array.isArray(job.assigned) && typeof fetch === 'function') {
         (async () => {
           for (const assignedName of job.assigned) {
             try {
               const employer = (employers || []).find(e => (e.name || '').toString().trim() === (assignedName || '').toString().trim());
-              if (employer && employer.id) {
-                await fetch(`${BACKEND_URL}/api/discord/dm`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    userId: employer.id,
-                    message: {
-                      embeds: [{
-                        title: '🔔 New Assigned Application',
-                        description: 'An application that you have been assigned to has been submitted.',
-                        color: 0x007AFF,
-                        fields: [
-                          { name: 'Application', value: job.title, inline: true },
-                          { name: 'Submitted', value: new Date(app.appliedDate).toLocaleString(), inline: true },
-                          { name: '🔑 Candidate PIN', value: `\`${app.pin}\``, inline: true },
-                          { name: '\u200b', value: 'Log on to your employer dashboard to manage this application.', inline: false }
-                        ],
-                        timestamp: new Date().toISOString()
-                      }]
-                    }
-                  })
-                });
-              }
+              if (!employer?.id) continue;
+
+              await fetch(`${BACKEND_URL}/api/discord/dm`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: employer.id,
+                  message: {
+                    embeds: [{
+                      title: '🔔 New Assigned Application',
+                      description: 'An application that you have been assigned to has been submitted.',
+                      color: 0x007AFF,
+                      fields: [
+                        { name: 'Application', value: job.title, inline: true },
+                        { name: 'Submitted', value: new Date(app.appliedDate).toLocaleString(), inline: true },
+                        { name: '🔑 Candidate PIN', value: `\`${app.pin}\``, inline: true },
+                        { name: '\u200b', value: 'Log on to your employer dashboard to manage this application.', inline: false }
+                      ],
+                      timestamp: new Date().toISOString()
+                    }]
+                  }
+                })
+              });
             } catch (err) {
               console.error('Failed to notify assigned employer:', assignedName, err);
             }
           }
         })();
       }
-      
-      // Normalize company key (trim) to avoid whitespace mismatches
-      const companyKey = (job.company || '').toString().trim();
 
-      // Send Discord DM confirmation to candidate
       if (app.data.discord) {
-        (async () => {
-          try {
-            const companyLogo = getCompanyLogo(companyKey);
-            
-            await fetch(`${BACKEND_URL}/api/discord/dm`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: app.data.discord,
-                message: {
-                  embeds: [{
-                    title: '✅ Application Received',
-                    description: `**RE: ${job.title}**`,
-                    color: 0x007AFF,
-                    thumbnail: { url: companyLogo },
-                    fields: [
-                      {
-                        name: '\u200b',
-                        value: `Dear Candidate,\n\nThank you for submitting your application for the **${job.title}** position at **${job.company}**.\n\nYour application has been received and is currently under review. Please keep an eye on this bot's DM for further updates. Your status is: **🔃 Processing** .\n\nPlease keep your Application PIN safe for future reference. \n\nKind Regards,\nallCareers Department`,
-                        inline: false
-                      },
-                      {
-                        name: '🏢 Company',
-                        value: job.company,
-                        inline: true
-                      },
-                      {
-                        name: '🔑 Application PIN',
-                        value: `\`${app.pin}\``,
-                        inline: true
-                      },
-                      {
-                        name: '📅 Submitted',
-                        value: new Date(app.appliedDate).toLocaleDateString(),
-                        inline: true
-                      }
-                    ],
-                    footer: {
-                      text: `allCareers • Cirkle Development Group`,
-                      icon_url: 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
+        try {
+          const companyLogo = getCompanyLogo(companyKey);
+
+          await fetch(`${BACKEND_URL}/api/discord/dm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: app.data.discord,
+              message: {
+                embeds: [{
+                  title: '✅ Application Received',
+                  description: `**RE: ${job.title}**`,
+                  color: 0x007AFF,
+                  thumbnail: { url: companyLogo },
+                  fields: [
+                    {
+                      name: '\u200b',
+                      value: `Dear Candidate,\n\nThank you for submitting your application for the **${job.title}** position at **${job.company}**.\n\nYour application has been received and is currently under review. Please keep an eye on this bot's DM for further updates. Your status is: **🔃 Processing** .\n\nPlease keep your Application PIN safe for future reference. \n\nKind Regards,\nallCareers Department`,
+                      inline: false
                     },
-                    timestamp: new Date().toISOString()
-                  }]
-                }
-              })
-            });
-          } catch (error) {
-            console.error('Error sending Discord DM:', error);
-          }
-        })();
+                    { name: '🏢 Company', value: job.company, inline: true },
+                    { name: '🔑 Application PIN', value: `\`${app.pin}\``, inline: true },
+                    { name: '📅 Submitted', value: new Date(app.appliedDate).toLocaleDateString(), inline: true }
+                  ],
+                  footer: {
+                    text: 'allCareers • Cirkle Development Group',
+                    icon_url: 'https://media.discordapp.net/attachments/1315278404009988107/1425166771413057578/Eco_Clean.png.jpg'
+                  },
+                  timestamp: new Date().toISOString()
+                }]
+              }
+            })
+          });
+        } catch (error) {
+          console.error('Error sending Discord DM:', error);
+        }
       }
-      
-      // 🛡️ SENTINEL Security: Send to Discord via bot channel posting (replaces webhooks)
+
       const CHANNEL_ID = COMPANY_CHANNELS[companyKey] || COMPANY_CHANNELS['Cirkle Development'];
       const ROLE_PING = COMPANY_ROLE_PINGS[companyKey] || COMPANY_ROLE_PINGS['Cirkle Development'];
-      
+
       if (CHANNEL_ID) {
         try {
           const embed = {
@@ -928,97 +895,47 @@ async function submitApplication(jobId) {
             fields: [
               { name: '📋 Position', value: job.title, inline: true },
               { name: '🏢 Company', value: job.company, inline: true },
-              { name: '📅 Applied', value: new Date(app.appliedDate).toLocaleString(), inline: false },
+              { name: '📅 Applied', value: new Date(app.appliedDate).toLocaleString(), inline: false }
             ],
             timestamp: new Date().toISOString(),
             footer: { text: '🛡️ SENTINEL Security Protected' }
           };
-          
-          // Add applicant info
+
           if (app.data.name) embed.fields.push({ name: '👤 Name', value: app.data.name, inline: true });
           if (app.data.email) embed.fields.push({ name: '📧 Email', value: app.data.email, inline: true });
           if (app.data.discord) embed.fields.push({ name: '💬 Discord ID', value: app.data.discord, inline: true });
           if (app.data.roblox) embed.fields.push({ name: '🎮 Roblox ID', value: app.data.roblox, inline: true });
           if (app.data.cv) embed.fields.push({ name: '📄 CV', value: app.data.cv, inline: false });
           if (app.data.experience) embed.fields.push({ name: '💼 Experience', value: app.data.experience.substring(0, 1000), inline: false });
-          
-          // Add answers to extra questions
+
           if (Object.keys(app.data.answers).length > 0) {
             Object.keys(app.data.answers).forEach(question => {
-              embed.fields.push({ 
-                name: `❓ ${question}`, 
-                value: app.data.answers[question] || 'No answer', 
-                inline: false 
+              embed.fields.push({
+                name: `❓ ${question}`,
+                value: app.data.answers[question] || 'No answer',
+                inline: false
               });
             });
           }
-          
+
           embed.fields.push({ name: '🔑 Candidate PIN', value: `\`${app.pin}\``, inline: false });
-          
-          // Send via secure bot channel posting endpoint
+
           await fetch(`${BACKEND_URL}/api/discord/channel-message`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               channelId: CHANNEL_ID,
               content: ROLE_PING,
-              embeds: [embed] 
+              embeds: [embed]
             })
           });
-          
+
           console.log('[SENTINEL] ✅ Application notification sent via secure channel');
         } catch (e) {
           console.error('[SENTINEL] ❌ Channel notification failed:', e);
         }
       }
 
-      // 🔔 Send DM notifications to assigned employers
-      if (job.assigned && Array.isArray(job.assigned)) {
-        for (const employerName of job.assigned) {
-          const employer = employers.find(e => e.name === employerName);
-          if (employer && employer.id) {
-            try {
-              const companyLogo = getCompanyLogo(companyKey);
-              
-              await fetch(`${BACKEND_URL}/api/discord/dm`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userId: employer.id,
-                  message: {
-                    embeds: [{
-                      title: '🔔 New Application Assigned to You',
-                      description: `A new candidate has applied for **${job.title}** at **${job.company}**`,
-                      color: 0x5856D6,
-                      thumbnail: { url: companyLogo },
-                      fields: [
-                        { name: '👤 Applicant', value: app.data.name || 'N/A', inline: true },
-                        { name: '📋 Position', value: job.title, inline: true },
-                        { name: '🏢 Company', value: job.company, inline: true },
-                        { name: '💬 Discord', value: app.data.discord || 'N/A', inline: true },
-                        { name: '📧 Email', value: app.data.email || 'N/A', inline: true },
-                        { name: '🎮 Roblox', value: app.data.roblox || 'N/A', inline: true },
-                        { name: '🔑 PIN', value: `\`${app.pin}\``, inline: false },
-                        { name: '📅 Applied', value: new Date(app.appliedDate).toLocaleString(), inline: false }
-                      ],
-                      footer: {
-                        text: `Review this application in the dashboard • SENTINEL Security`,
-                        icon_url: 'https://cdn.discordapp.com/attachments/1419317839269073016/1433880859022200872/allCareers.png'
-                      },
-                      timestamp: new Date().toISOString()
-                    }]
-                  }
-                })
-              });
-              
-              console.log(`[SENTINEL] ✅ DM notification sent to ${employerName} (${employer.id})`);
-            } catch (dmError) {
-              console.error(`[SENTINEL] ❌ Failed to DM ${employerName}:`, dmError);
-            }
-          }
-        }
-      }
-      
       applicationCompleted = true;
       hidePopup();
       playSuccessSound();
