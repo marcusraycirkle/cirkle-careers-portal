@@ -87,11 +87,41 @@ function getCompanyLogo(companyName) {
 // Data will be loaded from backend - see backend-api.js
 // let currentUser, jobs, applications, processed, chats, employers are defined in backend-api.js
 let currentUser = null;
+let editingJobId = null;
 
 // Chat live functionality
 var activeChatId = null;
 let chatPollInterval = null;
 let typingTimeout = null;
+
+function isMarcusRay() {
+  return (currentUser?.name || '').trim() === 'Marcus Ray' || currentUser?.id === '1088907566844739624';
+}
+
+async function logPortalEvent(title, description, fields = [], color = 0x007aff) {
+  try {
+    await fetch(`${BACKEND_URL}/api/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, fields, color })
+    });
+  } catch (error) {
+    console.error('[LOGGING] Failed to write portal log:', error);
+  }
+}
+
+async function fetchDiscordProfilePicture(discordId) {
+  if (!discordId) return 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/discord/user/${discordId}`);
+    const result = await response.json();
+    return result?.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png';
+  } catch (error) {
+    console.error('[Discord Profile] Failed to fetch avatar:', error);
+    return 'https://cdn.discordapp.com/embed/avatars/0.png';
+  }
+}
 
 const faqs = [
   { q: 'What is Cirkle Development Group?', a: 'The Cirkle Development Group (Cirkle Dev Group) is the parent organization established to own, manage, and provide strategic direction for all descendant companies under its corporate umbrella, including the original Cirkle Development. We are structured as a holding group dedicated to maximizing the efficiency and growth of our portfolio businesses. Our existence ensures that each subsidiary can focus entirely on its core mission and operations while benefiting from the financial stability, centralized resources, and clear legal framework provided by the Group. We are building a coherent, synergistic network where stability and strategic oversight drive collective success. You can view more by visiting https://group.cirkledevelopment.co.uk/' },
@@ -405,6 +435,11 @@ function renderPage() {
   const hash = window.location.hash.slice(1) || 'home';
   const main = document.getElementById('main-content');
   if (main) {
+    if (!isBackendReady && !hash.startsWith('apply/')) {
+      main.innerHTML = '<div class="box"><p style="text-align:center; padding:2rem; color:#6e6e73;">Loading portal data...</p></div>';
+      return;
+    }
+
     // Add page transition animation
     const animations = ['page-transition-fade', 'page-transition-slide-left', 'page-transition-slide-right', 'page-transition-slide-up', 'page-transition-scale', 'page-transition-rotate'];
     const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
@@ -468,7 +503,7 @@ function renderHome() {
     main.innerHTML = `
       <div style="text-align:center; padding:2rem 0;">
         <h1 id="animated-title" style="font-size:3rem; font-weight:800; margin-bottom:1rem; transition: color 0.8s ease-in-out;">Cirkle Development Careers</h1>
-        <p style="font-size:1.2rem; color:#6e6e73; max-width:700px; margin:0 auto 2rem; line-height:1.8;">Join our growing family of innovative companies and talented professionals</p>
+        <p style="font-size:1.2rem; color:#6e6e73; max-width:700px; margin:0 auto 2rem; line-height:1.8;">Join our growing family of ${COMPANIES.length} innovative companies and talented professionals</p>
       </div>
       
       <img src="https://cdn.discordapp.com/attachments/1404157487799861332/1432846309362237480/image.png" alt="Cirkle Careers Banner" style="width:100%; border-radius:20px; margin-bottom:3rem; box-shadow:0 8px 24px rgba(0,0,0,0.12);" onerror="this.style.display='none';">
@@ -524,7 +559,7 @@ function renderVacancies() {
   if (main) {
     main.innerHTML = `
       <h2 style="font-size:2.5rem; font-weight:800; margin-bottom:1rem; text-align:center;">Available Vacancies</h2>
-      <p style="text-align:center; font-size:1.1rem; color:#6e6e73; margin-bottom:2rem;">Explore opportunities across our family of companies</p>
+      <p style="text-align:center; font-size:1.1rem; color:#6e6e73; margin-bottom:2rem;">Explore opportunities across our family of ${COMPANIES.length} companies</p>
       <img src="https://cdn.discordapp.com/attachments/1404157487799861332/1432846309362237480/image.png" alt="Vacancies Banner" style="border-radius:20px; margin-bottom:2.5rem; width:100%; box-shadow:0 8px 24px rgba(0,0,0,0.12);" onerror="this.style.display='none';">
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem;">
     `;
@@ -764,7 +799,7 @@ async function submitApplication(jobId) {
       if (jobOptions.email) app.data.email = document.getElementById('app-email')?.value || '';
       if (jobOptions.discord) {
         app.data.discord = document.getElementById('app-discord')?.value || '';
-        app.data.discordPfp = `https://cdn.discordapp.com/embed/avatars/${Math.floor(Math.random() * 6)}.png`;
+        app.data.discordPfp = await fetchDiscordProfilePicture(app.data.discord);
       }
       if (jobOptions.roblox) {
         app.data.roblox = document.getElementById('app-roblox')?.value || '';
@@ -1277,7 +1312,7 @@ function renderEmployerPage(page) {
         <button data-emp="dashboard" class="menu-btn">Dashboard</button>
         <button data-emp="candidatemanagement" class="menu-btn">Candidate Management</button>
         <button data-emp="joblistings" class="menu-btn">Job Listings</button>
-        <button data-emp="employersuite" class="menu-btn">Employer Suite</button>
+        ${isMarcusRay() ? '<button data-emp="employers" class="menu-btn">Employers</button>' : ''}
         <button class="logout" onclick="logout()">Log Out</button>
       `;
       document.body.appendChild(menu);
@@ -1415,9 +1450,11 @@ function renderEmployerSubPage(sub) {
                 <div style="font-size:1.2rem; font-weight:600; margin-bottom:0.25rem;">${job.title}</div>
                 <div style="font-size:0.85rem; color:#6e6e73;">${job.company}</div>
               </div>
+              <span style="color:#6e6e73; font-size:0.85rem; margin-right:1rem;">Assigned: ${(job.assigned || []).length ? job.assigned.join(', ') : 'Unassigned'}</span>
               <span style="color:#6e6e73; font-size:0.85rem; margin-right:1rem;">Created: ${new Date(job.creationDate).toLocaleDateString()}</span>
               <span style="color:#6e6e73; font-size:0.85rem; margin-right:1rem;">By: ${job.createdBy}</span>
               <span style="color:#6e6e73; font-size:0.85rem; margin-right:1rem;">Submissions: ${job.submissions}</span>
+              <span class="trash" onclick="event.stopPropagation(); editJob(${job.id})" style="margin-right:0.75rem; cursor:pointer; font-size:1rem;">✎</span>
               <span class="trash" onclick="event.stopPropagation(); deleteJob(${job.id})">🗑</span>
             </div>
           `;
@@ -1434,6 +1471,22 @@ function renderEmployerSubPage(sub) {
           }
         });
       });
+      break;
+
+    case 'employers':
+      if (!isMarcusRay()) {
+        contentArea.innerHTML = '<div class="box"><p style="text-align:center; padding:2rem; color:#6e6e73;">You do not have access to this section.</p></div>';
+        break;
+      }
+
+      contentArea.innerHTML = `
+        <h2 style="font-size:2rem; font-weight:700; margin-bottom:1rem;">Employers</h2>
+        <p style="color:#6e6e73; margin-bottom:1.5rem;">Manage who can access the employer portal.</p>
+        <button class="big" onclick="openAddEmployerModal()" style="margin-bottom:1.5rem;">+ Add Employer</button>
+        <div id="employers-list" class="box"></div>
+      `;
+
+      renderEmployerDirectory();
       break;
       
     case 'candidatemanagement':
@@ -1602,16 +1655,15 @@ function renderEmployerSubPage(sub) {
       });
       break;
       
-    case 'employersuite':
-      contentArea.innerHTML = '<div id="employer-suite-root"></div>';
-      loadEmployerSuite();
-      break;
   }
 }
 
-function createJob() {
+function createJob(job = null) {
+  editingJobId = job?.id || null;
+  questionCount = 0;
+
   let content = `
-    <h2 style="font-size:2rem; font-weight:600; margin-bottom:1.5rem;">Create New Job Listing</h2>
+    <h2 style="font-size:2rem; font-weight:600; margin-bottom:1.5rem;">${job ? 'Edit Job Listing' : 'Create New Job Listing'}</h2>
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Job Title</label>
     <input type="text" id="job-title" placeholder="e.g. Finance Manager" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem;">
     <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Job Description</label>
@@ -1651,13 +1703,60 @@ function createJob() {
     <select id="company" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem;">
       ${COMPANIES.map(c => `<option>${c}</option>`).join('')}
     </select>
-    <button class="big" onclick="submitJob()" style="width:100%;">Create Listing</button>
+    <button class="big" onclick="submitJob()" style="width:100%;">${job ? 'Save Changes' : 'Create Listing'}</button>
   `;
   showPopup(content, true);
+
+  if (job) {
+    const setValue = (id, value) => {
+      const element = document.getElementById(id);
+      if (element) element.value = value ?? '';
+    };
+
+    setValue('job-title', job.title);
+    setValue('job-desc', job.description);
+    setValue('job-requirements', job.requirements);
+    setValue('payment-type', job.payment?.toLowerCase().startsWith('biweekly') ? 'biweekly' : job.payment?.toLowerCase().startsWith('set') ? 'set' : job.payment?.toLowerCase().startsWith('explained') ? 'explained' : 'notPayable');
+    setValue('company', job.company);
+
+    const assignedSelect = document.getElementById('assigned');
+    if (assignedSelect && Array.isArray(job.assigned)) {
+      Array.from(assignedSelect.options).forEach(option => {
+        option.selected = job.assigned.includes(option.value);
+      });
+    }
+
+    const statusOption = document.querySelector(`input[name="status"][value="${job.active ? 'open' : 'closed'}"]`);
+    if (statusOption) statusOption.checked = true;
+
+    const optionChecks = {
+      'opt-name': !!job.options?.name,
+      'opt-email': !!job.options?.email,
+      'opt-discord': !!job.options?.discord,
+      'opt-roblox': !!job.options?.roblox,
+      'opt-cv': !!job.options?.cv,
+      'opt-experience': !!job.options?.experience
+    };
+    Object.entries(optionChecks).forEach(([id, checked]) => {
+      const element = document.getElementById(id);
+      if (element) element.checked = checked;
+    });
+
+    if (Array.isArray(job.questions)) {
+      job.questions.forEach(question => addQuestion(question));
+    }
+  }
+
   const paymentSelect = document.getElementById('payment-type');
   if (paymentSelect) {
     paymentSelect.addEventListener('change', updatePaymentDetails);
     updatePaymentDetails();
+    if (job) {
+      const paymentDetailInput = document.getElementById('payment-detail');
+      if (paymentDetailInput) {
+        paymentDetailInput.value = job.payment?.includes(':') ? job.payment.split(':').slice(1).join(':').trim() : '';
+      }
+    }
   }
 }
 
@@ -1684,59 +1783,241 @@ function updatePaymentDetails() {
 }
 
 let questionCount = 0;
-function addQuestion() {
+
+function addQuestionOption(questionId, value = '') {
+  const optionList = document.getElementById(`q-option-list-${questionId}`);
+  if (!optionList) return;
+
+  const optionRow = document.createElement('div');
+  optionRow.style.display = 'flex';
+  optionRow.style.gap = '0.5rem';
+  optionRow.style.alignItems = 'center';
+  optionRow.style.marginBottom = '0.75rem';
+
+  optionRow.innerHTML = `
+    <input type="text" placeholder="Option" style="flex:1; width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6;">
+    <button type="button" class="remove-option-btn" style="padding:0.8rem 1rem; border:none; border-radius:8px; background:#ff3b30; color:#fff; cursor:pointer;">Remove</button>
+  `;
+
+  optionRow.querySelector('input').value = value;
+  optionRow.querySelector('.remove-option-btn').addEventListener('click', () => optionRow.remove());
+  optionList.appendChild(optionRow);
+}
+
+function renderQuestionOptions(questionId, questionData = {}) {
+  const optsDiv = document.getElementById(`q-options-${questionId}`);
+  if (!optsDiv) return;
+
+  const initialOptions = Array.isArray(questionData.options) && questionData.options.length > 0 ? questionData.options : ['', ''];
+  optsDiv.innerHTML = `
+    <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Options</label>
+    <div id="q-option-list-${questionId}"></div>
+    <button type="button" class="add-option-btn" style="background:none; color:#007aff; border:none; cursor:pointer; font-weight:500; margin-top:0.25rem;">+ Add Option</button>
+  `;
+
+  initialOptions.forEach(option => addQuestionOption(questionId, option));
+  optsDiv.querySelector('.add-option-btn')?.addEventListener('click', () => addQuestionOption(questionId));
+}
+
+function addQuestion(questionData = {}) {
   const container = document.getElementById('questions-container');
   if (container) {
     const id = questionCount++;
     const inputStyle = 'width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;';
-    container.innerHTML += `
-      <div style="background:#f2f2f7; padding:1rem; border-radius:12px; margin-bottom:1rem;">
-        <input type="text" id="q-title-${id}" placeholder="Question Title" style="${inputStyle}">
-        <textarea id="q-desc-${id}" placeholder="Optional Description" style="${inputStyle} height:80px;"></textarea>
-        <select id="q-type-${id}" style="${inputStyle}">
-          <option value="short">Short Text</option>
-          <option value="paragraph">Paragraph</option>
-          <option value="multiple">Multiple Choice</option>
-          <option value="multi">Multi Select</option>
-        </select>
-        <div id="q-options-${id}" style="margin-top:0.75rem;"></div>
-      </div>`;
-    const select = document.getElementById(`q-type-${id}`);
+    const questionCard = document.createElement('div');
+    questionCard.className = 'question-editor';
+    questionCard.dataset.questionId = id;
+    questionCard.style.background = '#f2f2f7';
+    questionCard.style.padding = '1rem';
+    questionCard.style.borderRadius = '12px';
+    questionCard.style.marginBottom = '1rem';
+    questionCard.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:0.5rem;">
+        <strong>Question ${id + 1}</strong>
+        <button type="button" class="remove-question-btn" style="border:none; background:none; color:#ff3b30; cursor:pointer; font-weight:600;">Remove</button>
+      </div>
+      <input type="text" data-question-field="title" placeholder="Question Title" style="${inputStyle}">
+      <textarea data-question-field="desc" placeholder="Optional Description" style="${inputStyle} height:80px;"></textarea>
+      <select data-question-field="type" style="${inputStyle}">
+        <option value="short">Short Text</option>
+        <option value="paragraph">Paragraph</option>
+        <option value="multiple">Multiple Choice</option>
+        <option value="multi">Multi Select</option>
+      </select>
+      <div id="q-options-${id}" style="margin-top:0.75rem;"></div>
+    `;
+
+    questionCard.querySelector('.remove-question-btn').addEventListener('click', () => questionCard.remove());
+    container.appendChild(questionCard);
+
+    questionCard.querySelector('[data-question-field="title"]').value = questionData.title || '';
+    questionCard.querySelector('[data-question-field="desc"]').value = questionData.desc || '';
+    questionCard.querySelector('[data-question-field="type"]').value = questionData.type || 'short';
+
+    const select = questionCard.querySelector('[data-question-field="type"]');
     if (select) {
       select.addEventListener('change', (e) => {
         const optsDiv = document.getElementById(`q-options-${id}`);
-        if (optsDiv) {
-          if (e.target.value === 'multiple' || e.target.value === 'multi') {
-            let opts = '<label style="display:block; font-weight:500; margin-bottom:0.5rem;">Options (up to 5)</label>';
-            for (let i = 0; i < 5; i++) opts += `<input type="text" id="q-opt-${id}-${i}" placeholder="Option ${i+1}" style="${inputStyle}"><br>`;
-            optsDiv.innerHTML = opts;
-          } else {
-            optsDiv.innerHTML = '';
-          }
+        if (!optsDiv) return;
+
+        if (e.target.value === 'multiple' || e.target.value === 'multi') {
+          renderQuestionOptions(id);
+        } else {
+          optsDiv.innerHTML = '';
         }
       });
+    }
+
+    if (questionData.type === 'multiple' || questionData.type === 'multi') {
+      renderQuestionOptions(id, questionData);
     }
   }
 }
 
-function submitJob() {
+function editJob(id) {
+  const job = jobs.find(j => j.id === id || j.firebaseKey === id || j.firebaseKey === String(id));
+  if (job) {
+    createJob(job);
+  }
+}
+
+async function renderEmployerDirectory() {
+  const list = document.getElementById('employers-list');
+  if (!list) return;
+
+  if (!Array.isArray(employers) || employers.length === 0) {
+    list.innerHTML = '<p style="text-align:center; color:#6e6e73; padding:2rem 0;">No employer accounts have been created yet.</p>';
+    return;
+  }
+
+  list.innerHTML = employers.map(employer => {
+    const employerId = employer.discordId || employer.id;
+    const employerPfp = employer.pfp || `https://ui-avatars.com/api/?name=${encodeURIComponent(employer.name || 'Employer')}&background=007aff&color=fff&size=80`;
+    return `
+      <div class="row" style="padding:1rem; margin-bottom:0.75rem; display:flex; align-items:center; gap:1rem;">
+        <img src="${employerPfp}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(employer.name || 'Employer')}&background=007aff&color=fff&size=80'" style="width:52px; height:52px; border-radius:50%; object-fit:cover;">
+        <div style="flex:1; min-width:0;">
+          <h3 style="font-size:1.1rem; margin-bottom:0.25rem;">${employer.name || 'Unknown Employer'}</h3>
+          <p style="font-size:0.9rem; color:#6e6e73; margin-bottom:0.15rem;">${employer.role || 'No role set'}</p>
+          <p style="font-size:0.85rem; color:#6e6e73;">Discord ID: ${employerId}</p>
+        </div>
+        <button class="big" onclick="deleteEmployerAccount('${employerId}')" style="background:#ff3b30; margin:0;">Remove</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function openAddEmployerModal() {
+  if (!isMarcusRay()) return;
+
+  showPopup(`
+    <h2 style="font-size:2rem; font-weight:700; margin-bottom:1rem;">Add Employer</h2>
+    <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Discord ID</label>
+    <input type="text" id="new-employer-id" placeholder="Discord user ID" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;">
+    <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Discord PIN</label>
+    <input type="text" id="new-employer-pin" placeholder="PIN for portal login" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;">
+    <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Username</label>
+    <input type="text" id="new-employer-name" placeholder="Username" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;">
+    <label style="display:block; font-weight:500; margin-bottom:0.5rem;">Role</label>
+    <input type="text" id="new-employer-role" placeholder="Role title" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1.5rem;">
+    <div class="confirm-actions">
+      <button class="big" onclick="saveEmployerAccount()" style="background:#34c759;">Publish</button>
+      <button class="big" onclick="hidePopup()" style="background:#8e8e93;">Cancel</button>
+    </div>
+  `, true);
+}
+
+async function saveEmployerAccount() {
+  const discordId = document.getElementById('new-employer-id')?.value?.trim();
+  const pin = document.getElementById('new-employer-pin')?.value?.trim();
+  const name = document.getElementById('new-employer-name')?.value?.trim();
+  const role = document.getElementById('new-employer-role')?.value?.trim();
+
+  if (!discordId || !pin || !name || !role) {
+    showNotification('Please fill out all employer fields.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/employers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discordId, pin, name, role })
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Unable to create employer account');
+    }
+
+    await loadEmployers();
+    await renderEmployerDirectory();
+    hidePopup();
+    showNotification(`Employer account created for ${name}`);
+  } catch (error) {
+    console.error('Error creating employer account:', error);
+    showNotification('Failed to create employer account.');
+  }
+}
+
+function deleteEmployerAccount(discordId) {
+  if (!discordId) return;
+
+  showPopup(`
+    <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">Remove Employer</h2>
+    <p style="margin-bottom:1.5rem;">Are you sure you want to remove this employer account?</p>
+    <div class="confirm-actions">
+      <button class="big" onclick="confirmDeleteEmployer('${discordId}')" style="background:#ff3b30;">Yes, Remove</button>
+      <button class="big" onclick="hidePopup()" style="background:#8e8e93;">No, Cancel</button>
+    </div>
+  `);
+}
+
+async function confirmDeleteEmployer(discordId) {
+  try {
+    await fetch(`${BACKEND_URL}/api/employers/${discordId}`, { method: 'DELETE' });
+    await loadEmployers();
+    await renderEmployerDirectory();
+    hidePopup();
+    showNotification('Employer account removed.');
+  } catch (error) {
+    console.error('Error removing employer account:', error);
+    showNotification('Failed to remove employer account.');
+  }
+}
+
+async function submitJob() {
   const paymentType = document.getElementById('payment-type')?.value;
   const paymentDetail = document.getElementById('payment-detail')?.value || '';
   const requirements = document.getElementById('job-requirements')?.value;
   
   if (paymentType && document.getElementById('job-title')?.value && document.getElementById('job-desc')?.value && requirements) {
+    const questionCards = Array.from(document.querySelectorAll('.question-editor'));
+    const questions = questionCards.map(card => {
+      const questionId = card.dataset.questionId;
+      const title = card.querySelector('[data-question-field="title"]')?.value?.trim();
+      const desc = card.querySelector('[data-question-field="desc"]')?.value?.trim() || '';
+      const type = card.querySelector('[data-question-field="type"]')?.value || 'short';
+      const options = type === 'multiple' || type === 'multi'
+        ? Array.from(card.querySelectorAll(`#q-option-list-${questionId} input`)).map(input => input.value.trim()).filter(Boolean)
+        : [];
+
+      return title ? { title, desc, type, options } : null;
+    }).filter(Boolean);
+
+    const existingJob = editingJobId ? jobs.find(j => j.id === editingJobId || j.firebaseKey === editingJobId || j.firebaseKey === String(editingJobId)) : null;
     const newJob = {
-      id: Date.now(),
+      id: existingJob?.id || Date.now(),
       title: document.getElementById('job-title').value,
       description: document.getElementById('job-desc').value,
       requirements: requirements,
       payment: paymentDetail ? `${paymentType.charAt(0).toUpperCase() + paymentType.slice(1)}: ${paymentDetail}` : `${paymentType.charAt(0).toUpperCase() + paymentType.slice(1)}`,
       active: document.querySelector('[name="status"]:checked')?.value === 'open',
-      createdBy: currentUser.name,
-      creationDate: new Date().toISOString(),
-      lastOpen: new Date().toISOString(),
-      clicks: 0,
-      submissions: 0,
+      createdBy: existingJob?.createdBy || currentUser.name,
+      creationDate: existingJob?.creationDate || new Date().toISOString(),
+      lastOpen: existingJob?.lastOpen || new Date().toISOString(),
+      clicks: existingJob?.clicks || 0,
+      submissions: existingJob?.submissions || 0,
       assigned: Array.from(document.getElementById('assigned')?.selectedOptions || []).map(o => o.value),
       options: {
         name: document.getElementById('opt-name')?.checked || false,
@@ -1746,23 +2027,11 @@ function submitJob() {
         cv: document.getElementById('opt-cv')?.checked || false,
         experience: document.getElementById('opt-experience')?.checked || false
       },
-      questions: [],
-      company: document.getElementById('company')?.value
+      questions,
+      company: document.getElementById('company')?.value,
+      firebaseKey: existingJob?.firebaseKey || editingJobId || undefined
     };
-    for (let i = 0; i < questionCount; i++) {
-      const title = document.getElementById(`q-title-${i}`)?.value;
-      if (title) {
-        const q = {
-          title,
-          desc: document.getElementById(`q-desc-${i}`)?.value || '',
-          type: document.getElementById(`q-type-${i}`)?.value || 'short',
-          options: []
-        };
-        const optInputs = document.querySelectorAll(`#q-options-${i} input`);
-        optInputs.forEach((inp, idx) => { if (inp.value) q.options.push(inp.value); });
-        newJob.questions.push(q);
-      }
-    }
+
     saveJob(newJob); // Firebase
     
     // Send Discord DMs to assigned employers
@@ -1800,9 +2069,19 @@ function submitJob() {
     }
     
     playSuccessSound();
-    showNotification(`Successfully created new listing: ${newJob.title}`);
+    showNotification(editingJobId ? `Successfully updated listing: ${newJob.title}` : `Successfully created new listing: ${newJob.title}`);
     if (newJob.assigned.includes(currentUser.name)) showNotification(`You have been assigned to listing: ${newJob.title}`);
+    logPortalEvent(
+      editingJobId ? 'Job Listing Updated' : 'Job Listing Created',
+      `${newJob.title} was ${editingJobId ? 'updated' : 'created'} by ${currentUser.name}.`,
+      [
+        { name: 'Company', value: newJob.company || 'N/A', inline: true },
+        { name: 'Assigned', value: newJob.assigned.length ? newJob.assigned.join(', ') : 'Unassigned', inline: false }
+      ],
+      0x007aff
+    );
     hidePopup();
+    editingJobId = null;
     renderEmployerSubPage('joblistings');
   } else {
     showNotification('Please fill all required fields.');
@@ -1861,6 +2140,7 @@ function viewJobDetails(id) {
         <p><strong>Last opened:</strong> ${new Date(job.lastOpen).toLocaleString()}</p>
         <p><strong>Total clicks:</strong> ${job.clicks}</p>
         <p><strong>Total submissions:</strong> ${job.submissions}</p>
+        <p><strong>Assigned to:</strong> ${(job.assigned || []).length ? job.assigned.join(', ') : 'Unassigned'}</p>
       </div>
       
       <div class="box" style="margin-bottom:1.5rem;">
@@ -1873,6 +2153,9 @@ function viewJobDetails(id) {
             </div>
           `).join('')}
         </div>
+      </div>
+      <div class="box" style="margin-bottom:1.5rem; display:flex; gap:1rem; flex-wrap:wrap;">
+        <button class="big" onclick="createJob(jobs.find(j => j.id === ${job.id}))" style="flex:1;">Edit Listing</button>
       </div>
       
       ${job.questions.length > 0 ? `
@@ -1963,22 +2246,6 @@ function viewApplicationDetails(id) {
           </div>
         </div>
       </div>
-      
-      <div style="flex:1;">
-        <div class="box" style="position:sticky; top:2rem;">
-          <h3>Discussion Chat</h3>
-          <div id="chat-msgs" style="max-height:300px; overflow-y:auto; margin-bottom:1rem; padding:0.5rem;">
-            ${(chats[app.id] || []).map(m => `
-              <div style="margin-bottom:0.75rem; padding:0.75rem; background:${m.user === currentUser.name ? '#007aff' : '#f2f2f7'}; color:${m.user === currentUser.name ? '#fff' : '#000'}; border-radius:12px;">
-                <strong style="font-size:0.85rem;">${m.user}</strong>
-                <p style="margin-top:0.25rem;">${m.msg}</p>
-              </div>
-            `).join('')}
-          </div>
-          <input id="chat-input" placeholder="Type your message..." style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;">
-          <button onclick="sendChatMessage(${app.id})" class="big" style="width:100%; background:#34c759; margin:0;">Send</button>
-        </div>
-      </div>
     </div>
   `;
   
@@ -2017,7 +2284,7 @@ function processFeedback(appId, action) {
     showPopup(`
       <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Confirm Hire</h2>
       <p style="margin-bottom:2rem; font-size:1.1rem;">Are you sure you want to hire this person? This cannot be undone.</p>
-      <div style="display:flex; gap:1rem;">
+      <div class="confirm-actions">
         <button onclick="confirmHire(${appId})" class="big" style="flex:1; background:#34c759;">Yes, Hire</button>
         <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">No, Cancel</button>
       </div>
@@ -2027,7 +2294,7 @@ function processFeedback(appId, action) {
       <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">Reject Application</h2>
       <p style="margin-bottom:1rem; font-size:1.1rem;">Please provide a reason for rejection:</p>
       <textarea id="reject-reason-input" placeholder="Enter reason..." style="width:100%; padding:1rem; border-radius:12px; border:1px solid #d1d1d6; min-height:120px; margin-bottom:1.5rem; font-family:inherit;"></textarea>
-      <div style="display:flex; gap:1rem;">
+      <div class="confirm-actions">
         <button onclick="confirmReject(${appId})" class="big" style="flex:1; background:#ff3b30;">Submit Rejection</button>
         <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">Cancel</button>
       </div>
@@ -2155,6 +2422,17 @@ async function confirmHire(appId) {
         console.error('Error sending Discord DM:', error);
       }
     }
+
+    logPortalEvent(
+      'Application Approved',
+      `${app.data.name || 'Candidate'} was hired for ${app.job}.`,
+      [
+        { name: 'Handler', value: currentUser.name || 'Unknown', inline: true },
+        { name: 'PIN', value: `\`${app.pin}\``, inline: true },
+        { name: 'Company', value: jobs.find(j => j.title === app.job)?.company || 'N/A', inline: false }
+      ],
+      0x34c759
+    );
     
     // Firebase: Delete from applications, add to processed
     deleteApplication(app.pin);
@@ -2244,6 +2522,17 @@ async function confirmReject(appId) {
         console.error('Error sending Discord DM:', error);
       }
     }
+
+    logPortalEvent(
+      'Application Denied',
+      `${app.data.name || 'Candidate'} was rejected for ${app.job}.`,
+      [
+        { name: 'Handler', value: currentUser.name || 'Unknown', inline: true },
+        { name: 'PIN', value: `\`${app.pin}\``, inline: true },
+        { name: 'Reason', value: reason, inline: false }
+      ],
+      0xff3b30
+    );
     
     // Firebase: Delete from applications, add to processed
     deleteApplication(app.pin);
@@ -2262,7 +2551,14 @@ async function confirmReject(appId) {
 }
 
 function deleteJob(id) {
-  showPopup(`Are you sure you want to delete this position? <button class="big" onclick="confirmDeleteJob(${id})" style="margin-right:1rem;">Yes</button><button class="big" onclick="hidePopup()" style="background:#ff3b30;">No</button>`);
+  showPopup(`
+    <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">Delete Job Listing</h2>
+    <p style="margin-bottom:1.5rem;">Are you sure you want to delete this position?</p>
+    <div class="confirm-actions">
+      <button class="big" onclick="confirmDeleteJob(${id})" style="background:#ff3b30;">Yes</button>
+      <button class="big" onclick="hidePopup()" style="background:#8e8e93;">No</button>
+    </div>
+  `);
 }
 
 async function confirmDeleteJob(id) {
@@ -2290,6 +2586,7 @@ async function confirmDeleteJob(id) {
       hidePopup();
       playSuccessSound();
       showNotification('Job listing deleted successfully');
+      logPortalEvent('Job Listing Deleted', `Job listing ${id} was deleted by ${currentUser?.name || 'Unknown'}.`, [{ name: 'Job ID', value: `\`${id}\``, inline: true }], 0xff3b30);
       renderEmployerSubPage('joblistings');
     }, 1000);
   }
@@ -2319,7 +2616,7 @@ function deleteProcessedApplication(appId) {
           </div>
         </label>
       </div>
-      <div style="display:flex; gap:1rem;">
+      <div class="confirm-actions">
         <button onclick="confirmDeleteProcessedApplication(${appId}, document.querySelector('[name=\\'delete-option\\']:checked')?.value === 'void')" class="big" style="flex:1; background:#ff3b30;">Confirm Delete</button>
         <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">Cancel</button>
       </div>
@@ -2328,7 +2625,7 @@ function deleteProcessedApplication(appId) {
     showPopup(`
       <h2 style="font-size:1.8rem; font-weight:700; margin-bottom:1rem; color:#ff3b30;">⚠️ Delete Application</h2>
       <p style="font-size:1.1rem; margin-bottom:2rem; line-height:1.6;">Are you sure you want to permanently delete this application? It can't be retrieved.</p>
-      <div style="display:flex; gap:1rem;">
+      <div class="confirm-actions">
         <button onclick="confirmDeleteProcessedApplication(${appId}, false)" class="big" style="flex:1; background:#ff3b30;">Yes, Delete</button>
         <button onclick="hidePopup()" class="big" style="flex:1; background:#8e8e93;">No, Cancel</button>
       </div>
@@ -2370,6 +2667,17 @@ async function confirmDeleteProcessedApplication(appId, shouldVoidUser = false) 
           console.error('Error sending void notification DM:', error);
         }
       }
+
+      logPortalEvent(
+        shouldVoidUser ? 'Application Voided' : 'Application Deleted',
+        shouldVoidUser ? `A hired application was voided for ${app.data.name || 'Unknown candidate'}.` : `A processed application was deleted for ${app.data.name || 'Unknown candidate'}.`,
+        [
+          { name: 'Handler', value: currentUser.name || 'Unknown', inline: true },
+          { name: 'PIN', value: app.pin ? `\`${app.pin}\`` : 'N/A', inline: true },
+          { name: 'Status', value: app.status || 'Unknown', inline: true }
+        ],
+        shouldVoidUser ? 0xff9500 : 0xff3b30
+      );
       
       // Delete from processed in backend using firebaseKey or by searching
       if (app.firebaseKey) {
@@ -2447,7 +2755,6 @@ function viewJob(id) {
 function viewApplication(id) {
   const app = applications.find(a => a.id === id);
   if (app) {
-    activeChatId = id; // Set active chat
     const job = jobs.find(j => j.id === app.jobId);
     let content = `<h2 style="font-size:2rem; font-weight:600; margin-bottom:1rem;">Application for ${job?.title || 'N/A'}</h2>`;
     content += '<div style="display:flex; align-items:center; margin-bottom:1.5rem;">' +
@@ -2460,32 +2767,11 @@ function viewApplication(id) {
     if (app.data.roblox) content += `<p style="font-weight:500;">Roblox: ${app.data.roblox}</p>`;
     if (app.data.cv) content += `<p style="font-weight:500;">CV: ${app.data.cv}</p>`;
     if (app.data.experience) content += `<p style="font-weight:500;">Experience: ${app.data.experience}</p>`;
-    content += '<div class="chat-box" style="margin:1.5rem 0; background:#f2f2f7; padding:1.25rem; border-radius:12px;"><h3 style="font-size:1.3rem; font-weight:600; margin-bottom:1rem;">Discussion Chat</h3><div id="chat-msgs" style="max-height:300px; overflow-y:auto; margin-bottom:1rem;">' + renderChatMessages(app.id) + '</div><div id="typing-indicator" style="display:none; color:#6e6e73; font-size:0.85rem; font-style:italic; margin-bottom:0.5rem;"></div><input id="chat-input" placeholder="Type your message..." style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;"><button class="big" onclick="sendChat(${id})" style="width:100%; background:#34c759;">Send</button></div>';
     content += '<label style="display:block; font-weight:500; margin-bottom:0.5rem;">Process Application</label><select id="app-status" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:0.75rem;"><option value="pending">Pending</option><option value="hired">Hire</option><option value="rejected">Reject</option></select><input id="reject-reason" class="hidden" placeholder="Reason for rejection" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #d1d1d6; margin-bottom:1rem;"><button class="big" onclick="processApp(${id})" style="width:100%;">Process</button>';
     showPopup(content, true);
     document.getElementById('app-status')?.addEventListener('change', e => {
       document.getElementById('reject-reason')?.classList.toggle('hidden', e.target.value !== 'rejected');
     });
-    
-    // Set up chat input typing indicator
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) {
-      chatInput.addEventListener('input', () => {
-        setTypingStatus(id, true);
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => setTypingStatus(id, false), 2000);
-      });
-      
-      chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          sendChat(id);
-        }
-      });
-    }
-    
-    // Start polling for new messages
-    startChatPolling(id);
   }
 }
 

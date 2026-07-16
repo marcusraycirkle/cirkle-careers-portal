@@ -482,29 +482,7 @@ window.initializeEmployerSuite = function(container, user) {
   // If user is already authenticated from main portal, use that session
   if (user) {
     console.log('[Employer Suite] Using existing user session:', user);
-    
-    // Enhance user object with Discord data if discordId is available
-    if (user.discordId && !user.id) {
-      // Fetch Discord user data to get avatar
-      fetch(`https://discord.com/api/v10/users/${user.discordId}`, {
-        headers: {
-          'Authorization': `Bot ${window.DISCORD_BOT_TOKEN || ''}`
-        }
-      })
-      .then(res => res.json())
-      .then(discordUser => {
-        user.id = discordUser.id;
-        user.avatar = discordUser.avatar;
-        user.username = user.username || discordUser.username;
-        employerAuth.saveSession('existing', user);
-      })
-      .catch(err => {
-        console.log('[Employer Suite] Could not fetch Discord data, using fallback');
-        employerAuth.saveSession('existing', user);
-      });
-    } else {
-      employerAuth.saveSession('existing', user);
-    }
+    employerAuth.saveSession('existing', user);
   }
   
   app.init();

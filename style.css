@@ -940,6 +940,16 @@ button.big:hover {
   animation: fadeIn 0.3s;
 }
 
+.confirm-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.confirm-actions .big {
+  flex: 1;
+}
+
 .spinner {
   border: 4px solid #f3f3f3;
   border-top: 4px solid #007aff;
@@ -1166,6 +1176,10 @@ button.big:hover {
 
   .success-screen {
     padding: 2rem 1.5rem;
+  }
+
+  .confirm-actions {
+    flex-direction: column;
   }
 
   .success-screen .tick {

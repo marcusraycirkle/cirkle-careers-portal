@@ -101,12 +101,67 @@ export default {
       '1187751127039615086': { pin: '051025', role: 'Cirkle Dev | Board of Directors', name: 'Sam Caster', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433578832929095710/sam.png' },
       '1268633822283563008': { pin: '618653', role: 'Cirkle Dev | Associate Director', name: 'Triumph Oppong ', pfp: 'https://media.discordapp.net/attachments/1404157487799861332/1433750219119661056/noFilter.png' },
       '1520165873866768454': { pin: '399593', role: 'Cirklke Dev | Associate Director', name: 'Logan Clarke', pfp: 'https://media.discordapp.net/attachments/1315278404009988107/1433586694287785984/image.png' },
-      '1203762560059314192': { pin: '325874', role: ' Cirkle Dev | Corporate Manager', name: 'Noelle Holiday', pfp: 'https://media.discordapp.net/attachments/1433394788761342143/1433598236702019624/IMG_7285.png' },
       '971822919590244402': { pin: '971822', role: ' Cambridge Secondary School | Executive Headteacher', name: 'Belle Mackenzie', pfp: 'https://images-ext-1.discordapp.net/external/kmsPPcxDamsd9DpSSWbpviHIosXfGi4dA9ffBxa7-b4/%3Fformat%3Dwebp/https/images-ext-1.discordapp.net/external/qCqyNyx3TrMgtBf_vueYK9oYRHVm6kx8p6klQBW3x3M/https/tr.rbxcdn.com/30DAY-AvatarBust-78BB6C086CE3FBD1AF524AC2C7A82C12-Png/420/420/AvatarBust/Png/noFilter?format=webp' }
     };
-    const USERS = Object.fromEntries(
+    const LOG_CHANNEL_ID = '1527303038346334258';
+    const LOG_GUILD_ID = '1460025375655723283';
+
+    const baseUsers = Object.fromEntries(
       Object.entries(rawUsers).filter(([id]) => !BLACKLISTED_DISCORD_IDS.has(id))
     );
+
+    async function loadStoredEmployers() {
+      try {
+        const response = await fetch(`${FIREBASE_CONFIG.databaseURL}/employers.json`);
+        const data = await response.json();
+        return data || {};
+      } catch (error) {
+        console.error('[SENTINEL] Failed to load stored employers:', error);
+        return {};
+      }
+    }
+
+    async function getEmployerRecords() {
+      const storedEmployers = await loadStoredEmployers();
+      return { ...baseUsers, ...storedEmployers };
+    }
+
+    async function sendPortalLog(logData) {
+      if (!DISCORD_BOT_TOKEN) {
+        return { success: false, message: 'Discord bot not configured' };
+      }
+
+      const title = logData?.title || 'Portal Event';
+      const description = logData?.description || '';
+      const fields = Array.isArray(logData?.fields) ? logData.fields : [];
+      const color = typeof logData?.color === 'number' ? logData.color : 0x5865f2;
+
+      const logResponse = await fetch(`https://discord.com/api/v10/channels/${LOG_CHANNEL_ID}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          content: `Guild ${LOG_GUILD_ID}`,
+          embeds: [{
+            title,
+            description,
+            color,
+            fields,
+            footer: { text: 'Cirkle Careers Audit Log' },
+            timestamp: new Date().toISOString()
+          }]
+        })
+      });
+
+      const result = await logResponse.json().catch(() => ({}));
+      if (!logResponse.ok) {
+        throw new Error(result.message || 'Failed to send portal log');
+      }
+
+      return { success: true, data: result };
+    }
 
     // Discord Bot Token from environment (NEVER expose to client)
     const DISCORD_BOT_TOKEN = env.DISCORD_BOT_TOKEN;
@@ -148,8 +203,10 @@ export default {
           }));
         }
         
+        const USERS = await getEmployerRecords();
+
         if (USERS[discordId] && USERS[discordId].pin === pin) {
-          const userData = { ...USERS[discordId] };
+          const userData = { ...USERS[discordId], discordId };
           delete userData.pin; // Never send PIN back to client
           return addSecurityHeaders(new Response(JSON.stringify({ 
             success: true, 
@@ -174,14 +231,75 @@ export default {
 
       // Get employer list (without PINs)
       if (path === '/api/employers' && request.method === 'GET') {
+        const USERS = await getEmployerRecords();
         const employers = Object.keys(USERS).map(id => ({
           id,
+          discordId: id,
           name: USERS[id].name,
           role: USERS[id].role,
           pfp: USERS[id].pfp
         }));
         
         return addSecurityHeaders(new Response(JSON.stringify(employers), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      if (path === '/api/employers' && request.method === 'POST') {
+        const body = await request.json();
+        const discordId = sanitizeInput(body.discordId || body.id);
+        const pin = sanitizeInput(body.pin);
+        const name = sanitizeInput(body.name);
+        const role = sanitizeInput(body.role);
+        const pfp = sanitizeInput(body.pfp || '');
+
+        if (!isValidDiscordId(discordId) || !pin || !name || !role) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: false,
+            message: 'Missing required employer fields',
+            sentinel: 'input_validation_failed'
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+
+        const employerRecord = { pin, name, role, pfp };
+        await fetch(`${FIREBASE_CONFIG.databaseURL}/employers/${discordId}.json`, {
+          method: 'PUT',
+          body: JSON.stringify(employerRecord)
+        });
+
+        await sendPortalLog({
+          title: 'Employer Account Created',
+          description: `An employer account was created for ${name}.`,
+          color: 0x34c759,
+          fields: [
+            { name: 'Discord ID', value: `\`${discordId}\``, inline: true },
+            { name: 'Username', value: name, inline: true },
+            { name: 'Role', value: role, inline: false }
+          ]
+        });
+
+        return addSecurityHeaders(new Response(JSON.stringify({
+          success: true,
+          employer: { id: discordId, discordId, name, role, pfp }
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+
+      if (path.startsWith('/api/employers/') && request.method === 'DELETE') {
+        const employerId = path.split('/')[3];
+        await fetch(`${FIREBASE_CONFIG.databaseURL}/employers/${employerId}.json`, { method: 'DELETE' });
+        await sendPortalLog({
+          title: 'Employer Account Deleted',
+          description: `Employer account ${employerId} was removed.`,
+          color: 0xff3b30,
+          fields: [{ name: 'Discord ID', value: `\`${employerId}\``, inline: true }]
+        });
+
+        return addSecurityHeaders(new Response(JSON.stringify({ success: true }), {
           headers: { 'Content-Type': 'application/json' }
         }));
       }
@@ -262,6 +380,76 @@ export default {
         }
       }
 
+      if (path.startsWith('/api/discord/user/') && request.method === 'GET') {
+        if (!DISCORD_BOT_TOKEN) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: false,
+            message: 'Discord bot not configured',
+            sentinel: 'bot_not_configured'
+          }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+
+        const userId = path.split('/')[4];
+        if (!isValidDiscordId(userId)) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: false,
+            message: 'Invalid user ID',
+            sentinel: 'input_validation_failed'
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+
+        try {
+          const response = await fetch(`https://discord.com/api/v10/users/${userId}`, {
+            headers: {
+              'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            return addSecurityHeaders(new Response(JSON.stringify({
+              success: false,
+              error: data.message || 'Unable to fetch Discord user',
+              sentinel: 'discord_api_error'
+            }), {
+              status: response.status,
+              headers: { 'Content-Type': 'application/json' }
+            }));
+          }
+
+          const avatarUrl = data.avatar
+            ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png?size=128`
+            : `https://cdn.discordapp.com/embed/avatars/${Number(data.discriminator || 0) % 5}.png`;
+
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: true,
+            id: data.id,
+            username: data.username,
+            global_name: data.global_name,
+            avatar: data.avatar,
+            avatarUrl
+          }), {
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        } catch (error) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: false,
+            error: error.message,
+            sentinel: 'network_error'
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+      }
+
       // Send Discord DM to user
       if (path === '/api/discord/dm' && request.method === 'POST') {
         if (!DISCORD_BOT_TOKEN) {
@@ -275,7 +463,9 @@ export default {
           }));
         }
 
-        const { userId, message } = await request.json();
+        const payload = await request.json();
+        const userId = payload.userId;
+        const message = payload.message || { embeds: payload.embeds || [] };
         
         if (!isValidDiscordId(userId)) {
           return addSecurityHeaders(new Response(JSON.stringify({ 
@@ -313,6 +503,16 @@ export default {
             });
             
             const result = await messageResponse.json();
+
+            await sendPortalLog({
+              title: 'Discord DM Sent',
+              description: `A direct message was sent to ${userId}.`,
+              color: 0x007aff,
+              fields: [
+                { name: 'Recipient', value: `\`${userId}\``, inline: true },
+                { name: 'Status', value: 'Delivered', inline: true }
+              ]
+            }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
             
             return addSecurityHeaders(new Response(JSON.stringify({ 
               success: true, 
@@ -322,6 +522,16 @@ export default {
               headers: { 'Content-Type': 'application/json' }
             }));
           } else {
+            await sendPortalLog({
+              title: 'Discord DM Failed',
+              description: `A direct message could not be sent to ${userId}.`,
+              color: 0xff3b30,
+              fields: [
+                { name: 'Recipient', value: `\`${userId}\``, inline: true },
+                { name: 'Discord Error', value: dmChannel.message || 'Unknown error', inline: false }
+              ]
+            }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
+
             return addSecurityHeaders(new Response(JSON.stringify({ 
               success: false, 
               message: 'Could not create DM channel',
@@ -336,6 +546,25 @@ export default {
             success: false, 
             error: error.message,
             sentinel: 'network_error'
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }
+      }
+
+      if (path === '/api/logs' && request.method === 'POST') {
+        try {
+          const logData = await request.json();
+          const result = await sendPortalLog(logData);
+          return addSecurityHeaders(new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        } catch (error) {
+          return addSecurityHeaders(new Response(JSON.stringify({
+            success: false,
+            error: error.message,
+            sentinel: 'log_dispatch_failed'
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
@@ -559,6 +788,17 @@ export default {
         );
         
         const data = await response.json();
+        await sendPortalLog({
+          title: body.firebaseKey ? 'Job Listing Updated' : 'Job Listing Created',
+          description: `${body.title || 'Untitled listing'} ${body.firebaseKey ? 'was updated' : 'was created'}.`,
+          color: 0x007aff,
+          fields: [
+            { name: 'Job ID', value: `\`${jobId}\``, inline: true },
+            { name: 'Company', value: body.company || 'N/A', inline: true },
+            { name: 'Created By', value: body.createdBy || 'N/A', inline: false }
+          ]
+        }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
+
         return addSecurityHeaders(new Response(JSON.stringify(data), {
           headers: { 'Content-Type': 'application/json' }
         }));
@@ -572,6 +812,13 @@ export default {
           `${FIREBASE_CONFIG.databaseURL}/jobs/${jobId}.json`,
           { method: 'DELETE' }
         );
+
+        await sendPortalLog({
+          title: 'Job Listing Deleted',
+          description: `Job listing ${jobId} was deleted.`,
+          color: 0xff3b30,
+          fields: [{ name: 'Job ID', value: `\`${jobId}\``, inline: true }]
+        }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
         
         return addSecurityHeaders(new Response(JSON.stringify({ success: true }), {
           headers: { 'Content-Type': 'application/json' }
@@ -601,6 +848,17 @@ export default {
         );
         
         const data = await response.json();
+        await sendPortalLog({
+          title: 'Application Created',
+          description: `${body.job || 'Application'} was submitted.`,
+          color: 0x34c759,
+          fields: [
+            { name: 'Application ID', value: `\`${appId}\``, inline: true },
+            { name: 'PIN', value: body.pin ? `\`${body.pin}\`` : 'N/A', inline: true },
+            { name: 'Status', value: body.status || 'Processing', inline: true }
+          ]
+        }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
+
         return addSecurityHeaders(new Response(JSON.stringify(data), {
           headers: { 'Content-Type': 'application/json' }
         }));
@@ -614,6 +872,13 @@ export default {
           `${FIREBASE_CONFIG.databaseURL}/applications/${appId}.json`,
           { method: 'DELETE' }
         );
+
+        await sendPortalLog({
+          title: 'Application Deleted',
+          description: `Application ${appId} was deleted.`,
+          color: 0xff9500,
+          fields: [{ name: 'Application ID', value: `\`${appId}\``, inline: true }]
+        }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
         
         return addSecurityHeaders(new Response(JSON.stringify({ success: true }), {
           headers: { 'Content-Type': 'application/json' }
@@ -643,6 +908,17 @@ export default {
         );
         
         const data = await response.json();
+        await sendPortalLog({
+          title: 'Processed Application Saved',
+          description: `${body.job || 'Application'} was moved to processed status.`,
+          color: 0x5856d6,
+          fields: [
+            { name: 'Application ID', value: `\`${appId}\``, inline: true },
+            { name: 'Status', value: body.status || 'Unknown', inline: true },
+            { name: 'Handled By', value: body.handler || 'N/A', inline: false }
+          ]
+        }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
+
         return addSecurityHeaders(new Response(JSON.stringify(data), {
           headers: { 'Content-Type': 'application/json' }
         }));
@@ -656,6 +932,13 @@ export default {
           `${FIREBASE_CONFIG.databaseURL}/processed/${appId}.json`,
           { method: 'DELETE' }
         );
+
+        await sendPortalLog({
+          title: 'Processed Application Deleted',
+          description: `Processed application ${appId} was deleted.`,
+          color: 0xff3b30,
+          fields: [{ name: 'Application ID', value: `\`${appId}\``, inline: true }]
+        }).catch(error => console.error('[SENTINEL] Log dispatch failed:', error));
         
         return addSecurityHeaders(new Response(JSON.stringify({ success: true }), {
           headers: { 'Content-Type': 'application/json' }
